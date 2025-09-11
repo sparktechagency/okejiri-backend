@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests\Promotion;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class ChangePasswordRequest extends FormRequest
+class PromotionCreateUpdateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,15 +24,14 @@ class ChangePasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'current_password' => 'required|string|min:4',
-            'new_password' => 'required|string|min:4|same:retype_password',
+            'image'=>'required|image|mimes:png,jpg,jpeg|max:10240'
         ];
     }
 
     public function messages()
     {
         return [
-             'new_password.same' => 'The new password field must match confirm new password.',
+           //
         ];
     }
 

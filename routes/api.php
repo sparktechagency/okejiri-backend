@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
+use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\Stripe\ConnectController;
 use App\Http\Controllers\Api\Stripe\PaymentController;
 use App\Http\Controllers\Api\Stripe\WebhookController;
@@ -41,6 +42,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('pages', [PageController::class, 'createOrUpdatePage']);
             Route::apiResource('faqs', FaqController::class)->except('index');
             Route::apiResource('categories', CategoryController::class)->except('index');
+            Route::apiResource('promotions', PromotionController::class)->except('index');
             Route::post('categories/status/{category_id}', [CategoryController::class, 'toggleCategoryStatus']);
         });
 
@@ -87,6 +89,7 @@ Route::group(['middleware' => 'api'], function ($router) {
     Route::get('pages', [PageController::class, 'getPage']);
     Route::apiResource('faqs', FaqController::class)->only('index');
     Route::apiResource('categories', CategoryController::class)->only('index');
+    Route::apiResource('promotions', PromotionController::class)->only('index');
     Route::post('stripe/connected/transfer-create', [ConnectController::class, 'createTransfer']);
     Route::post('stripe/webhook', [WebhookController::class, 'handleWebhook']);
 });
