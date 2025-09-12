@@ -17,16 +17,20 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
             $table->string('avatar')->default('default_avatar.png');
             $table->enum('role', ['ADMIN', 'USER','PROVIDER'])->default('USER');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->boolean('is_blocked')->default(false);
+            $table->string('referral_code')->nullable();
+            $table->boolean('is_kyc_verified')->default(false);
 
-            // Connected account
-            $table->string('stripe_account_id')->nullable();
-            $table->boolean('stripe_charges_enabled')->default(false);
-            $table->boolean('stripe_payouts_enabled')->default(false);
+            // $table->boolean('is_blocked')->default(false);
+            // // Connected account
+            // $table->string('stripe_account_id')->nullable();
+            // $table->boolean('stripe_charges_enabled')->default(false);
+            // $table->boolean('stripe_payouts_enabled')->default(false);
 
             $table->string('otp')->nullable()->unique();
             $table->string('otp_expires_at')->nullable();

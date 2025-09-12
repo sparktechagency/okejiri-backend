@@ -56,7 +56,7 @@ class AuthController extends Controller
                 );
             }
 
-            $otp            = rand(100000, 999999);
+            $otp            = rand(000000, 999999);
             $otp_expires_at = now()->addMinutes(10);
 
             if ($user_exists && $user_exists->email_verified_at === null) {
@@ -84,10 +84,11 @@ class AuthController extends Controller
                 $new_user                 = new User();
                 $new_user->name           = $request->name;
                 $new_user->email          = $request->email;
+                $new_user->password       = Hash::make($request->password);
+
                 $new_user->phone          = $request->phone;
                 $new_user->address        = $request->address;
                 $new_user->role           = $request->role ?? 'USER';
-                $new_user->password       = Hash::make($request->password);
                 $new_user->otp            = $otp;
                 $new_user->otp_expires_at = $otp_expires_at;
                 $new_user->status         = 'inactive';
@@ -100,6 +101,9 @@ class AuthController extends Controller
                 $user = $new_user;
             }
 
+            if($request->referral_code){
+return 'ami asssi hehe';
+            }
             $this->sendMail($user->email, $otp, 'register');
             // $this->sendSms($user->phone, $otp);
 
@@ -180,7 +184,7 @@ class AuthController extends Controller
                 return $this->responseError(null, 'Your account has been blocked. Please contact support.', 403);
             }
             if ($user->email_verified_at == null) {
-                $otp                  = rand(100000, 999999);
+                $otp                  = rand(000000, 999999);
                 $otp_expires_at       = now()->addMinutes(10);
                 $user->otp            = $otp;
                 $user->otp_expires_at = $otp_expires_at;
@@ -231,7 +235,7 @@ class AuthController extends Controller
     {
         try {
             $user                 = User::where('email', $request->email)->first();
-            $otp                  = rand(100000, 999999);
+            $otp                  = rand(000000, 999999);
             $otp_expires_at       = now()->addMinutes(10);
             $user->otp            = $otp;
             $user->otp_expires_at = $otp_expires_at;

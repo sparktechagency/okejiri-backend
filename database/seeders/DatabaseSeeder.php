@@ -2,6 +2,8 @@
 namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+
+use App\Models\ReferedUser;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -19,7 +21,10 @@ class DatabaseSeeder extends Seeder
             PromotionSeeder::class,
             ServiceSeeder::class,
             PackageSeeder::class,
-            ServiceRequestSeeder::class
+            ServiceRequestSeeder::class,
+
+
+            // ReferredUserSeeder::class,
         ]);
     }
 }

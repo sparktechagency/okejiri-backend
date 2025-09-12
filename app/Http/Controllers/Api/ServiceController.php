@@ -25,11 +25,10 @@ class ServiceController extends Controller
      */
     public function index(Request $request)
     {
-        $per_page = $request->input('per_page') ?? 10;
         $search   = $request->input('search');
         $services = Service::withCount('packages')->when($search, function ($query) use ($search) {
             $query->where('name', 'LIKE', '%' . $search . '%');
-        })->latest('id')->paginate($per_page);
+        })->latest('id')->get();
         $data = [
             'service_requests' => ServiceRequest::count() ?? 0,
             'services'         => $services,

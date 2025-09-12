@@ -32,7 +32,6 @@ class User extends Authenticatable implements JWTSubject
         'stripe_payouts_enabled',
         'stripe_account_id',
         'otp_expires_at',
-        'google_id',
         'facebook_id',
         'apple_id',
         'twitter_id',

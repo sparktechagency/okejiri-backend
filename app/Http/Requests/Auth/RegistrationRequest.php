@@ -1,10 +1,10 @@
 <?php
-
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class RegistrationRequest extends FormRequest
 {
@@ -24,13 +24,20 @@ class RegistrationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string|max:255',
-            'role' => 'in:USER|nullable',
-            'photo' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'password' => 'required|string|min:4|same:retype_password',
+            'name'          => 'required|string|max:255',
+            'email'         => 'required|email|max:255',
+            'address'       => 'required|string|max:255',
+            'phone'         => 'required|string|max:20',
+            'role'          => 'required|in:USER,PROVIDER',
+            'password'      => 'required|string|min:4|confirmed',
+            'referral_code' => [
+                'nullable',
+                'numeric',
+                Rule::exists('users', 'referral_code')->where(function ($query) {
+                    $role = $this->input('role');
+                    $query->where('role', $role);
+                }),
+            ],
         ];
     }
 
@@ -45,7 +52,7 @@ class RegistrationRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'message' => $validator->errors()->first(),
-            'errors' => $validator->errors(),
+            'errors'  => $validator->errors(),
         ], 422));
     }
 }

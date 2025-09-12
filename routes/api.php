@@ -1,15 +1,9 @@
 <?php
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FaqController;
-use App\Http\Controllers\Api\MessageController;
-use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ServiceController;
-use App\Http\Controllers\Api\Stripe\ConnectController;
-use App\Http\Controllers\Api\Stripe\PaymentController;
-use App\Http\Controllers\Api\Stripe\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'api'], function ($router) {
