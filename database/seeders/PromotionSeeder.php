@@ -1,9 +1,8 @@
 <?php
-
 namespace Database\Seeders;
 
 use App\Models\Promotion;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Services\FileUploadService;
 use Illuminate\Database\Seeder;
 
 class PromotionSeeder extends Seeder
@@ -13,9 +12,12 @@ class PromotionSeeder extends Seeder
      */
     public function run(): void
     {
-        for($i=1; $i<=5; $i++){
+        $totalPromotions = 5;
+        for ($i = 1; $i <= $totalPromotions; $i++) {
+            $fileUpload = new FileUploadService('public_path', 'placeholders/promotions');
+            $image      = $fileUpload->generatePlaceholderImage();
             Promotion::create([
-                'image'=>$i.'.'.'jpg'
+                'image' => $image,
             ]);
         }
     }

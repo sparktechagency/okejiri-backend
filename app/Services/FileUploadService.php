@@ -1,20 +1,19 @@
 <?php
-
 namespace App\Services;
 
 use Illuminate\Http\File;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Intervention\Image\ImageManager;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
 
 class FileUploadService
 {
-    private string $disk = 'public_path';  // 'public_path', 'public', 's3', 'local'
-    private string $path = '';
+    private string $disk        = 'public_path'; // 'public_path', 'public', 's3', 'local'
+    private string $path        = '';
     private array $defaultFiles = [];
 
-    public function __construct(?string $disk = null, ?string $path = null, array|string $defaultFiles = [])
+    public function __construct(?string $disk = null, ?string $path = null, array | string $defaultFiles = [])
     {
         if ($disk !== null) {
             $this->disk = $disk;
@@ -24,7 +23,7 @@ class FileUploadService
             $this->path = trim($path, '/');
         }
 
-        if (!empty($defaultFiles)) {
+        if (! empty($defaultFiles)) {
             $this->defaultFiles = is_array($defaultFiles) ? $defaultFiles : [$defaultFiles];
         }
     }
@@ -51,7 +50,7 @@ class FileUploadService
         return $this->path;
     }
 
-    public function setDefaultFiles(array|string $files): static
+    public function setDefaultFiles(array | string $files): static
     {
         $this->defaultFiles = is_array($files) ? $files : [$files];
         return $this;
@@ -71,7 +70,7 @@ class FileUploadService
     {
         if ($this->disk === 'public_path') {
             $fullPath = public_path($this->path);
-            if (!file_exists($fullPath)) {
+            if (! file_exists($fullPath)) {
                 mkdir($fullPath, 0777, true);
             }
             return;
@@ -81,7 +80,7 @@ class FileUploadService
             return;
         }
 
-        if (!Storage::disk($this->disk)->exists($this->path)) {
+        if (! Storage::disk($this->disk)->exists($this->path)) {
             Storage::disk($this->disk)->makeDirectory($this->path);
         }
     }
@@ -91,7 +90,7 @@ class FileUploadService
         $this->ensureDirectoryExists();
 
         $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&background=random&bold=true&size=256';
-        $response = Http::get($avatarUrl);
+        $response  = Http::get($avatarUrl);
 
         $filename = $this->generateUniqueFilename() . '.png';
         if ($oldAvatar) {
@@ -128,7 +127,7 @@ class FileUploadService
         $this->ensureDirectoryExists();
 
         $originalExtension = strtolower($file->getClientOriginalExtension());
-        $extension = $convertToWebp ? 'webp' : $originalExtension;
+        $extension         = $convertToWebp ? 'webp' : $originalExtension;
 
         $quality = $quality ?? 40;
         $quality = max(0, min(100, $quality));
@@ -136,7 +135,7 @@ class FileUploadService
         $filename = $this->generateUniqueFilename() . '.' . $extension;
 
         $manager = new ImageManager(['driver' => 'gd']);
-        $image = $manager->make($file)->orientate();
+        $image   = $manager->make($file)->orientate();
 
         if ($resizeWidth && $resizeHeight) {
             $image->fit($resizeWidth, $resizeHeight, function ($constraint) {
@@ -191,7 +190,7 @@ class FileUploadService
         $filePath = preg_replace('#^/storage/#', '', $filePath);
 
         $relativePath = ltrim(str_replace('\\', '/', $filePath), '/');
-        $fileName = basename($relativePath);
+        $fileName     = basename($relativePath);
 
         if (in_array($fileName, $this->defaultFiles)) {
             return false;
@@ -237,10 +236,40 @@ class FileUploadService
     {
         $success = true;
         foreach ($files as $file) {
-            if (!$this->deleteFile($file)) {
+            if (! $this->deleteFile($file)) {
                 $success = false;
             }
         }
         return $success;
+    }
+
+    public function generatePlaceholderImage(int $height = 400, int $width = 600): string
+    {
+        $this->ensureDirectoryExists();
+        $bgColor   = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
+        $textColor = '#BDC3C7';
+
+        $filename = $this->generateUniqueFilename() . '.png';
+
+        $manager = new ImageManager(['driver' => 'gd']);
+        $image   = $manager->canvas($width, $height, $bgColor);
+
+        $image->text("{$width}x{$height}", $width / 2, $height / 2, function ($font) use ($textColor) {
+            $font->file(public_path('fonts/poppins-regular.woff'));
+            $font->size(32);
+            $font->color($textColor);
+            $font->align('center');
+            $font->valign('middle');
+        });
+
+        if ($this->disk === 'public_path') {
+            $image->save(public_path($this->path . '/' . $filename));
+        } else {
+            $tempPath = sys_get_temp_dir() . '/' . $filename;
+            $image->save($tempPath);
+            Storage::disk($this->disk)->putFileAs($this->path, new File($tempPath), $filename);
+            unlink($tempPath);
+        }
+        return $this->path ? rtrim($this->path, '/') . '/' . $filename : $filename;
     }
 }

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
             $table->string('avatar')->default('default_avatar.png');
-            $table->enum('role', ['ADMIN', 'USER'])->default('USER');
+            $table->enum('role', ['ADMIN', 'USER','PROVIDER'])->default('USER');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->boolean('is_blocked')->default(false);
