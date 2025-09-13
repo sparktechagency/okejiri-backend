@@ -31,7 +31,8 @@ return new class extends Migration
             $table->string('id_card_back')->nullable();
             $table->string('selfie')->nullable();
             $table->enum('kyc_status', ['Unverified', 'In Review', 'Verified'])
-                ->default('Unverified');
+            ->default('Unverified');
+            $table->longText('about')->nullable();
 
             // $table->boolean('is_blocked')->default(false);
             // // Connected account
