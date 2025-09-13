@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->foreignId(column: 'referred_by')->nullable()->constrained('users')->cascadeOnDelete();
             $table->string('name');
             $table->string('email')->unique();
             $table->string('phone')->nullable();
@@ -20,10 +21,12 @@ return new class extends Migration
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
             $table->string('avatar')->default('default_avatar.png');
-            $table->enum('role', ['ADMIN', 'USER','PROVIDER'])->default('USER');
+            $table->enum('role', ['ADMIN', 'USER', 'PROVIDER'])->default('USER');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('referral_code')->nullable();
+            $table->decimal('wallet_balance')->default(0);
+            $table->decimal('referral_balance')->default(0);
             $table->boolean('is_kyc_verified')->default(false);
 
             // $table->boolean('is_blocked')->default(false);
@@ -35,9 +38,6 @@ return new class extends Migration
             $table->string('otp')->nullable()->unique();
             $table->string('otp_expires_at')->nullable();
             $table->string('google_id')->nullable();
-            $table->string('facebook_id')->nullable();
-            $table->string('apple_id')->nullable();
-            $table->string('twitter_id')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('inactive');
             $table->rememberToken();
             $table->timestamps();

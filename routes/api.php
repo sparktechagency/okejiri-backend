@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ServiceController;
@@ -10,6 +11,7 @@ Route::group(['middleware' => 'api'], function ($router) {
 
     Route::prefix('auth/')->group(function () {
         Route::post('register', [AuthController::class, 'register']);
+        Route::put('complete-personalizations/{user_id}', [AuthController::class, 'completePersonalization']);
         Route::post('social-login', [AuthController::class, 'socialLogin']);
         Route::post('login', [AuthController::class, 'login']);
         Route::post('otp-verification', [AuthController::class, 'otpVerify']);
@@ -25,6 +27,11 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::post('change-password', [AuthController::class, 'changePassword']);
         Route::post('delete-profile', [AuthController::class, 'deleteProfile']);
         Route::post('logout', [AuthController::class, 'logout']);
+
+        // Notifications
+        Route::get('notifications', [NotificationController::class, 'notifications']);
+        Route::post('mark-notification/{id}', [NotificationController::class, 'singleMark']);
+        Route::post('mark-all-notification', [NotificationController::class, 'allMark']);
 
         // User routes
         Route::middleware('user')->as('user')->group(function () {
@@ -46,11 +53,6 @@ Route::group(['middleware' => 'api'], function ($router) {
 
         // Common routes
         Route::middleware('admin.user')->as('common')->group(function () {
-            // Notifications
-            // Route::get('notifications', [NotificationController::class, 'notifications']);
-            // Route::post('mark-notification/{id}', [NotificationController::class, 'singleMark']);
-            // Route::post('mark-all-notification', [NotificationController::class, 'allMark']);
-
             // Messaging
             // Route::post('send-message', [MessageController::class, 'sendMessage']);
             // Route::post('edit-message/{id}', [MessageController::class, 'editMessage']);

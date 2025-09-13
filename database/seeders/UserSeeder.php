@@ -30,6 +30,7 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now(),
                 'is_kyc_verified'=>rand(0,1),
                 'status'            => 'active',
+                'referred_by'=>User::where('role','USER')->inRandomOrder()->first()?->id,
             ]);
         }
 

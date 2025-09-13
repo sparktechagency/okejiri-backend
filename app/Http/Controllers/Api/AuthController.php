@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\CompletePersonalizationRequest;
 use App\Http\Requests\Auth\DeleteProfileRequest;
 use App\Http\Requests\Auth\EditProfilePictureRequest;
 use App\Http\Requests\Auth\EditProfileRequest;
@@ -14,6 +15,7 @@ use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\SocialLoginRequest;
 use App\Mail\OtpMail;
 use App\Models\User;
+use App\Notifications\CompleteKYCNotification;
 use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
 use Exception;
@@ -61,8 +63,6 @@ class AuthController extends Controller
 
             if ($user_exists && $user_exists->email_verified_at === null) {
                 $user_exists->name           = $request->name;
-                $user_exists->phone          = $request->phone;
-                $user_exists->address        = $request->address;
                 $user_exists->role           = $request->role ?? 'USER';
                 $user_exists->password       = Hash::make($request->password);
                 $user_exists->otp            = $otp;
@@ -76,7 +76,10 @@ class AuthController extends Controller
                 $user_exists->avatar = $request->hasFile('photo')
                     ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
                     : $this->fileuploadService->generateUserAvatar($request->name);
-
+                if ($request->referral_code) {
+                    $referred_by              = User::where('role', $request->role)->where('referral_code', $request->referral_code)->first()?->id;
+                    $user_exists->referred_by = $referred_by;
+                }
                 $user_exists->save();
                 $user = $user_exists;
 
@@ -85,9 +88,6 @@ class AuthController extends Controller
                 $new_user->name           = $request->name;
                 $new_user->email          = $request->email;
                 $new_user->password       = Hash::make($request->password);
-
-                $new_user->phone          = $request->phone;
-                $new_user->address        = $request->address;
                 $new_user->role           = $request->role ?? 'USER';
                 $new_user->otp            = $otp;
                 $new_user->otp_expires_at = $otp_expires_at;
@@ -97,16 +97,17 @@ class AuthController extends Controller
                     ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
                     : $this->fileuploadService->generateUserAvatar($request->name);
 
+                if ($request->referral_code) {
+                    $referred_by           = User::where('role', $request->role)->where('referral_code', $request->referral_code)->first()?->id;
+                    $new_user->referred_by = $referred_by;
+                }
                 $new_user->save();
                 $user = $new_user;
+
+                $user->notify(new CompleteKYCNotification());
             }
 
-            if($request->referral_code){
-return 'ami asssi hehe';
-            }
             $this->sendMail($user->email, $otp, 'register');
-            // $this->sendSms($user->phone, $otp);
-
             DB::commit();
 
             $meta_data = ['redirect_verification' => true];
@@ -126,6 +127,20 @@ return 'ami asssi hehe';
         }
     }
 
+    public function completePersonalization(CompletePersonalizationRequest $request, $user_id)
+    {
+        try {
+            $user            = User::findOrFail($user_id);
+            $user->phone     = $request->phone;
+            $user->address   = $request->address;
+            $user->latitude  = $request->latitude;
+            $user->longitude = $request->longitude;
+            $user->save();
+            return $this->responseSuccess($user, 'Personalization completed successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage(), 'An error occurred while complete the personalization.');
+        }
+    }
     public function socialLogin(SocialLoginRequest $request)
     {
         try {
@@ -143,10 +158,7 @@ return 'ami asssi hehe';
                     return $this->responseSuccess(null, 'An account with this email already exists. Please sign in instead.', 200, 'success', $meta_data);
                 } else {
                     $user_exists->update([
-                        'google_id'   => $request->google_id ?? $user_exists->google_id,
-                        'facebook_id' => $request->facebook_id ?? $user_exists->facebook_id,
-                        'twitter_id'  => $request->twitter_id ?? $user_exists->twitter_id,
-                        'apple_id'    => $request->apple_id ?? $user_exists->apple_id,
+                        'google_id' => $request->google_id ?? $user_exists->google_id,
                     ]);
                     $responseWithToken = $this->generateTokenResponse($user_exists);
                     return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
@@ -158,9 +170,6 @@ return 'ami asssi hehe';
             $new_user->role              = $request->role ?? 'USER';
             $new_user->password          = Hash::make(Str::random(16));
             $new_user->google_id         = $request->google_id ?? null;
-            $new_user->facebook_id       = $request->facebook_id ?? null;
-            $new_user->twitter_id        = $request->twitter_id ?? null;
-            $new_user->apple_id          = $request->apple_id ?? null;
             $new_user->email_verified_at = now();
             $new_user->status            = 'active';
 
@@ -169,6 +178,7 @@ return 'ami asssi hehe';
                 : $this->fileuploadService->generateUserAvatar($request->name);
 
             $new_user->save();
+            $new_user->notify(new CompleteKYCNotification());
             $responseWithToken = $this->generateTokenResponse($new_user);
             return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
         } catch (Exception $e) {

@@ -1,12 +1,12 @@
 <?php
+
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Validation\Rule;
 
-class RegistrationRequest extends FormRequest
+class CompletePersonalizationRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,25 +24,15 @@ class RegistrationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'          => 'required|string|max:255',
-            'email'         => 'required|email|max:255',
-            'role'          => 'required|in:USER,PROVIDER',
-            'password'      => 'required|string|min:4|confirmed',
-            'referral_code' => [
-                'nullable',
-                'numeric',
-                Rule::exists('users', 'referral_code')->where(function ($query) {
-                    $role = $this->input('role');
-                    $query->where('role', $role);
-                }),
-            ],
+            'phone'=>'required|string|max:20',
+            'address'=>'required|string'
         ];
     }
 
     public function messages()
     {
         return [
-            //
+           //
         ];
     }
 
@@ -50,7 +40,7 @@ class RegistrationRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'message' => $validator->errors()->first(),
-            'errors'  => $validator->errors(),
+            'errors' => $validator->errors(),
         ], 422));
     }
 }
