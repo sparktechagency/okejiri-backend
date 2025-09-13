@@ -2,6 +2,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Services\FileUploadService;
 use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -14,9 +15,14 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $faker      = Faker::create();
+        $statuses   = ['Unverified', 'In Review', 'Verified'];
         $totalUsers = 5;
 
         for ($i = 1; $i <= $totalUsers; $i++) {
+            $fileUpload    = new FileUploadService('public_path');
+            $id_card_front = $fileUpload->setPath('placeholders/users/id_card_front')->generatePlaceholderImage();
+            $id_card_back  = $fileUpload->setPath('placeholders/users/id_card_back')->generatePlaceholderImage();
+            $selfie        = $fileUpload->setPath('placeholders/users/selfie')->generatePlaceholderImage(512, 512);
             User::create([
                 'name'  => "System User $i",
                 'email' => "user{$i}@gmail.com",
@@ -28,18 +34,14 @@ class UserSeeder extends Seeder
                 'password'          => Hash::make('1234'),
                 'referral_code'     => rand(100000, 999999),
                 'email_verified_at' => now(),
-                'is_kyc_verified'=>rand(0,1),
                 'status'            => 'active',
-                'referred_by'=>User::where('role','USER')->inRandomOrder()->first()?->id,
+                'kyc_status'        => $statuses[array_rand($statuses)],
+                'id_card_front'     => $id_card_front,
+                'id_card_back'      => $id_card_back,
+                'selfie'            => $selfie,
+                'referred_by'       => User::where('role', 'USER')->inRandomOrder()->first()?->id,
             ]);
         }
-
-
-
-
-
-
-
 
         $totalProvider = 5;
 

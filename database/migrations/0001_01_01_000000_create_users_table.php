@@ -27,7 +27,11 @@ return new class extends Migration
             $table->string('referral_code')->nullable();
             $table->decimal('wallet_balance')->default(0);
             $table->decimal('referral_balance')->default(0);
-            $table->boolean('is_kyc_verified')->default(false);
+            $table->string('id_card_front')->nullable();
+            $table->string('id_card_back')->nullable();
+            $table->string('selfie')->nullable();
+            $table->enum('kyc_status', ['Unverified', 'In Review', 'Verified'])
+                ->default('Unverified');
 
             // $table->boolean('is_blocked')->default(false);
             // // Connected account

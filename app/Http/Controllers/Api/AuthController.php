@@ -33,7 +33,7 @@ class AuthController extends Controller
 {
     use ApiResponse;
     protected $fileuploadService;
-    private $avatarPath  = 'uploads/users';
+    private $avatarPath  = 'uploads/users/avatar';
     private $defaultFile = ['default_avatar.png'];
 
     public function __construct(FileUploadService $fileuploadService)
