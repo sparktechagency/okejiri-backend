@@ -21,11 +21,15 @@ class CompletePersonalizationRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
+
     public function rules(): array
     {
         return [
             'phone'=>'required|string|max:20',
-            'address'=>'required|string'
+            'address'=>'required|string',
+            'role'=>'required|in:USER,PROVIDER',
+            'about'=>'required_if:role,PROVIDER|string',
+            'service_id'=>'required_if:role,PROVIDER|array|min:1',
         ];
     }
 

@@ -20,9 +20,9 @@ class UserSeeder extends Seeder
 
         for ($i = 1; $i <= $totalUsers; $i++) {
             $fileUpload    = new FileUploadService('public_path');
-            $id_card_front = $fileUpload->setPath('placeholders/users/id_card_front')->generatePlaceholderImage();
-            $id_card_back  = $fileUpload->setPath('placeholders/users/id_card_back')->generatePlaceholderImage();
-            $selfie        = $fileUpload->setPath('placeholders/users/selfie')->generatePlaceholderImage(512, 512);
+            $id_card_front = $fileUpload->setPath('placeholders/users/kyc/id_card_front')->generatePlaceholderImage();
+            $id_card_back  = $fileUpload->setPath('placeholders/users/kyc/id_card_back')->generatePlaceholderImage();
+            $selfie        = $fileUpload->setPath('placeholders/users/kyc/selfie')->generatePlaceholderImage(512, 512);
             User::create([
                 'name'  => "System User $i",
                 'email' => "user{$i}@gmail.com",
@@ -39,23 +39,8 @@ class UserSeeder extends Seeder
                 'id_card_front'     => $id_card_front,
                 'id_card_back'      => $id_card_back,
                 'selfie'            => $selfie,
+                'is_personalization_complete'=>rand(0,1),
                 'referred_by'       => User::where('role', 'USER')->inRandomOrder()->first()?->id,
-            ]);
-        }
-
-        $totalProvider = 5;
-
-        for ($i = 1; $i <= $totalProvider; $i++) {
-            User::create([
-                'name'  => "System Provider $i",
-                'email' => "provider{$i}@gmail.com",
-                'phone'             => $faker->phoneNumber,
-                'address'           => $faker->address,
-                'referral_code'     => rand(000000, 999999),
-                'role'              => 'PROVIDER',
-                'email_verified_at' => now(),
-                'password'          => Hash::make('1234'),
-                'status'            => 'active',
             ]);
         }
     }

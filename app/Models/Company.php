@@ -7,7 +7,7 @@ class Company extends Model
 {
     protected $guarded = ['id'];
 
-    public function getLogoAttribute($file)
+    public function getCompanyLogoAttribute($file)
     {
         $useStoragePrefix = false;
         $prefix           = $useStoragePrefix ? 'storage/' : '';

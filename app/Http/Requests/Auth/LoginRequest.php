@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Contracts\Validation\Validator;
@@ -24,8 +23,10 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email|exists:users,email',
-            'password' => 'required|string|min:4',
+            'email'         => 'required|email|exists:users,email',
+            'password'      => 'required|string|min:4',
+            'role'          => 'required|in:PROVIDER,USER,ADMIN',
+            'provider_type' => 'required_if:role,PROVIDER|in:Individual,Company',
         ];
     }
 
@@ -40,7 +41,7 @@ class LoginRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'message' => $validator->errors()->first(),
-            'errors' => $validator->errors(),
+            'errors'  => $validator->errors(),
         ], 422));
     }
 }

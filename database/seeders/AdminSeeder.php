@@ -23,6 +23,7 @@ class AdminSeeder extends Seeder
             'email_verified_at' => now(),
             'password' => Hash::make('1234'),
             'status' => 'active',
+            'is_personalization_complete'=>true,
         ]);
     }
 }

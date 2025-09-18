@@ -26,6 +26,8 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::post('edit-profile-picture', [AuthController::class, 'editProfilePicture']);
         Route::post('change-password', [AuthController::class, 'changePassword']);
         Route::post('delete-profile', [AuthController::class, 'deleteProfile']);
+        Route::post('complete-kyc', [AuthController::class, 'completeKyc']);
+        Route::post('request-add-service', [ServiceController::class, 'requestAddService']);
         Route::post('logout', [AuthController::class, 'logout']);
 
         // Notifications

@@ -1,12 +1,11 @@
 <?php
-
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Notifications\Notifiable;
-use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -44,7 +43,7 @@ class User extends Authenticatable implements JWTSubject
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
@@ -60,17 +59,17 @@ class User extends Authenticatable implements JWTSubject
 
     public function getIsBlockedAttribute($value)
     {
-        return (bool)$value;
+        return (bool) $value;
     }
 
     public function getAvatarAttribute($file)
     {
         $useStoragePrefix = false;
-        $prefix = $useStoragePrefix ? 'storage/' : '';
+        $prefix           = $useStoragePrefix ? 'storage/' : '';
 
         $isJson = fn($string) => is_string($string)
-            && str_starts_with(trim($string), '[')
-            && str_ends_with(trim($string), ']');
+        && str_starts_with(trim($string), '[')
+        && str_ends_with(trim($string), ']');
 
         $buildUrl = function ($f) use ($prefix) {
             $path = $prefix . ltrim($f, '/');
@@ -90,8 +89,94 @@ class User extends Authenticatable implements JWTSubject
 
         return null;
     }
+    public function getIdCardFrontAttribute($file)
+    {
+        $useStoragePrefix = false;
+        $prefix           = $useStoragePrefix ? 'storage/' : '';
 
-    public function company(){
+        $isJson = fn($string) => is_string($string)
+        && str_starts_with(trim($string), '[')
+        && str_ends_with(trim($string), ']');
+
+        $buildUrl = function ($f) use ($prefix) {
+            $path = $prefix . ltrim($f, '/');
+            return asset($path);
+        };
+
+        if ($isJson($file)) {
+            $files = json_decode($file, true);
+            if (is_array($files)) {
+                return array_map($buildUrl, $files);
+            }
+        }
+
+        if (is_string($file) && trim($file) !== '') {
+            return $buildUrl($file);
+        }
+
+        return null;
+    }
+    public function getIdCardBackAttribute($file)
+    {
+        $useStoragePrefix = false;
+        $prefix           = $useStoragePrefix ? 'storage/' : '';
+
+        $isJson = fn($string) => is_string($string)
+        && str_starts_with(trim($string), '[')
+        && str_ends_with(trim($string), ']');
+
+        $buildUrl = function ($f) use ($prefix) {
+            $path = $prefix . ltrim($f, '/');
+            return asset($path);
+        };
+
+        if ($isJson($file)) {
+            $files = json_decode($file, true);
+            if (is_array($files)) {
+                return array_map($buildUrl, $files);
+            }
+        }
+
+        if (is_string($file) && trim($file) !== '') {
+            return $buildUrl($file);
+        }
+
+        return null;
+    }
+    public function getSelfieAttribute($file)
+    {
+        $useStoragePrefix = false;
+        $prefix           = $useStoragePrefix ? 'storage/' : '';
+
+        $isJson = fn($string) => is_string($string)
+        && str_starts_with(trim($string), '[')
+        && str_ends_with(trim($string), ']');
+
+        $buildUrl = function ($f) use ($prefix) {
+            $path = $prefix . ltrim($f, '/');
+            return asset($path);
+        };
+
+        if ($isJson($file)) {
+            $files = json_decode($file, true);
+            if (is_array($files)) {
+                return array_map($buildUrl, $files);
+            }
+        }
+
+        if (is_string($file) && trim($file) !== '') {
+            return $buildUrl($file);
+        }
+
+        return null;
+    }
+    public function getIsPersonalizationCompleteAttribute($value)
+    {
+        return (bool) $value;
+    }
+
+    public function company()
+    {
         return $this->hasOne(Company::class);
     }
 }

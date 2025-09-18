@@ -16,14 +16,15 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             UserSeeder::class,
+            ProviderSeeder::class,
+            CompanySeeder::class,
+            ServiceSeeder::class,
+            ProviderServiceSeeder::class,
             PageSeeder::class,
             FaqSeeder::class,
             PromotionSeeder::class,
-            ServiceSeeder::class,
             PackageSeeder::class,
             ServiceRequestSeeder::class,
-
-
         ]);
     }
 }

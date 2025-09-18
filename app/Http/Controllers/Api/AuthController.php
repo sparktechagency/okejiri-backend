@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\CompleteKYCRequest;
 use App\Http\Requests\Auth\CompletePersonalizationRequest;
 use App\Http\Requests\Auth\DeleteProfileRequest;
 use App\Http\Requests\Auth\EditProfilePictureRequest;
@@ -14,6 +15,7 @@ use App\Http\Requests\Auth\RegistrationRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\SocialLoginRequest;
 use App\Mail\OtpMail;
+use App\Models\ProviderService;
 use App\Models\User;
 use App\Notifications\CompleteKYCNotification;
 use App\Services\FileUploadService;
@@ -27,7 +29,6 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
-use Twilio\Rest\Client;
 
 class AuthController extends Controller
 {
@@ -92,6 +93,7 @@ class AuthController extends Controller
                 $new_user->otp            = $otp;
                 $new_user->otp_expires_at = $otp_expires_at;
                 $new_user->status         = 'inactive';
+                $new_user->referral_code  = rand(100000, 999999);
 
                 $new_user->avatar = $request->hasFile('photo')
                     ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
@@ -135,19 +137,36 @@ class AuthController extends Controller
             $user->address   = $request->address;
             $user->latitude  = $request->latitude;
             $user->longitude = $request->longitude;
+            $user->about     = $request->about;
+            if ($user->role === 'PROVIDER' && $request->has('service_id')) {
+                foreach ($request->service_id as $serviceId) {
+                    ProviderService::create([
+                        'provider_id' => $user->id,
+                        'service_id'  => $serviceId,
+                    ]);
+                }
+            }
+            $user->is_personalization_complete = true;
             $user->save();
             return $this->responseSuccess($user, 'Personalization completed successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage(), 'An error occurred while complete the personalization.');
         }
     }
+
     public function socialLogin(SocialLoginRequest $request)
     {
         try {
             $user_exists = User::where('email', $request->email)->first();
             if ($user_exists) {
-                if ($user_exists->is_blocked) {
-                    return $this->responseError(null, 'Your account has been blocked. Please contact support.', 403);
+                if ($user_exists->role !== $request->role) {
+                    return $this->responseError(null, 'You are not authorized as this role.', 403);
+                }
+
+                if ($request->role === 'PROVIDER') {
+                    if ($user_exists->provider_type !== $request->provider_type) {
+                        return $this->responseError(null, 'Provider type mismatch.', 403);
+                    }
                 }
                 $socialId = ($request->has('google_id') && $user_exists->google_id === $request->google_id) || ($request->has('facebook_id') && $user_exists->facebook_id === $request->facebook_id) || ($request->has('twitter_id') && $user_exists->twitter_id === $request->twitter_id) || ($request->has('apple_id') && $user_exists->apple_id === $request->apple_id);
                 if ($socialId) {
@@ -164,14 +183,16 @@ class AuthController extends Controller
                     return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
                 }
             }
-            $new_user                    = new User();
-            $new_user->name              = $request->name;
-            $new_user->email             = $request->email;
-            $new_user->role              = $request->role ?? 'USER';
-            $new_user->password          = Hash::make(Str::random(16));
-            $new_user->google_id         = $request->google_id ?? null;
-            $new_user->email_verified_at = now();
-            $new_user->status            = 'active';
+            $new_user                              = new User();
+            $new_user->name                        = $request->name;
+            $new_user->email                       = $request->email;
+            $new_user->role                        = $request->role ?? 'USER';
+            $new_user->provider_type               = $request->provider_type ?? null;
+            $new_user->password                    = Hash::make(Str::random(16));
+            $new_user->google_id                   = $request->google_id ?? null;
+            $new_user->email_verified_at           = now();
+            $new_user->status                      = 'active';
+            $new_user->is_personalization_complete = false;
 
             $new_user->avatar = $request->hasFile('photo')
                 ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
@@ -179,6 +200,7 @@ class AuthController extends Controller
 
             $new_user->save();
             $new_user->notify(new CompleteKYCNotification());
+
             $responseWithToken = $this->generateTokenResponse($new_user);
             return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
         } catch (Exception $e) {
@@ -190,8 +212,14 @@ class AuthController extends Controller
     {
         try {
             $user = User::where('email', $request->email)->first();
-            if ($user->is_blocked) {
-                return $this->responseError(null, 'Your account has been blocked. Please contact support.', 403);
+            if ($user->role !== $request->role) {
+                return $this->responseError(null, 'You are not authorized as this role.', 403);
+            }
+
+            if ($request->role === 'PROVIDER') {
+                if ($user->provider_type !== $request->provider_type) {
+                    return $this->responseError(null, 'Provider type mismatch.', 403);
+                }
             }
             if ($user->email_verified_at == null) {
                 $otp                  = rand(000000, 999999);
@@ -201,7 +229,6 @@ class AuthController extends Controller
 
                 // Send OTP
                 $this->sendMail($request->email, $otp, 'register');
-                // $this->sendSms($user->phone, $otp);
 
                 $meta_data = ['redirect_verification' => true];
                 return $this->responseError(null, 'Your account is not verified. OTP has been sent to your email.', 403, 'error', $meta_data);
@@ -277,8 +304,14 @@ class AuthController extends Controller
     {
         $user = Auth::user();
 
-        if ($user) {
+        if ($user && $user->role == 'USER') {
             return $this->responseSuccess($user, ucfirst(strtolower($user->role)) . " profile retrieved successfully.");
+        }
+        if ($user && $user->role == 'PROVIDER' && $user->provider_type == 'Individual') {
+            return $this->responseSuccess($user, ucfirst(strtolower($user->provider_type)) . ' ' . strtolower($user->role) . " profile retrieved successfully.");
+        }
+        if ($user && $user->role == 'PROVIDER' && $user->provider_type == 'Company') {
+            return $this->responseSuccess($user, ucfirst(strtolower($user->provider_type)) . ' ' . strtolower($user->role) . " profile retrieved successfully.");
         }
 
         return $this->responseError('Unauthorized access. User not authenticated.', 401);
@@ -395,37 +428,26 @@ class AuthController extends Controller
         }
     }
 
-    private function sendSms($receiverNumber, $otp)
+    public function completeKyc(CompleteKYCRequest $request)
     {
-        $appName = env('APP_NAME');
-        $message = "{$otp} is your {$appName} verification code. Don't share your code with anyone.";
-
-        try {
-            $client = new Client(
-                config('services.twilio.sid'),
-                config('services.twilio.token')
-            );
-            $client->messages->create($receiverNumber,
-                ['from' => config('services.twilio.from'),
-                    'body'  => $message,
-                ]);
-
-        } catch (Exception $e) {
-            throw new Exception("SMS sending failed: " . $e->getMessage());
+        $user = Auth::user();
+        if ($request->hasFile('id_card_front')) {
+            $user->id_card_front = $this->fileuploadService->setPath('uploads/users/kyc/id_card_front')->updateOptimizedImage($request->file('id_card_front'), $user->id_card_front, 40, 1320, null, true);
         }
+        if ($request->hasFile('id_card_back')) {
+            $user->id_card_back = $this->fileuploadService->setPath('uploads/users/kyc/id_card_back')->updateOptimizedImage($request->file('id_card_back'), $user->id_card_back, 40, 1320, null, true);
+        }
+        if ($request->hasFile('selfie')) {
+            $user->selfie = $this->fileuploadService->setPath('uploads/users/kyc/selfie')->updateOptimizedImage($request->file('selfie'), $user->selfie, 40, 1320, null, true);
+        }
+        $user->kyc_status = 'In Review';
+        $user->save();
+        return $this->responseSuccess(null, 'Kyc verification apply successfully.');
     }
 
     private function generateTokenResponse($user)
     {
-        $customClaims = [
-            'id'     => $user->id,
-            'name'   => $user->name,
-            'email'  => $user->email,
-            'role'   => $user->role,
-            'avatar' => $user->avatar,
-        ];
-
-        $token = JWTAuth::claims($customClaims)->fromUser($user);
+        $token = JWTAuth::fromUser($user);
 
         return [
             'access_token' => $token,

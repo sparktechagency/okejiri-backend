@@ -1,11 +1,12 @@
 <?php
-namespace App\Http\Requests\Auth;
+
+namespace App\Http\Requests\Service;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class SocialLoginRequest extends FormRequest
+class NewServiceAddRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,24 +24,14 @@ class SocialLoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'          => 'required|string|max:255',
-            'email'         => 'required|email|max:255',
-            'google_id'     => 'required|string',
-            'photo'         => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-            'role'          => 'required|in:PROVIDER,USER,ADMIN',
-            'provider_type' => 'required_if:role,PROVIDER|in:Individual,Company',
+           'service_name'=>'required|string|max:255',
         ];
-    }
-
-    public function withValidator($validator)
-    {
-
     }
 
     public function messages()
     {
         return [
-            //
+           //
         ];
     }
 
@@ -48,7 +39,7 @@ class SocialLoginRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'message' => $validator->errors()->first(),
-            'errors'  => $validator->errors(),
+            'errors' => $validator->errors(),
         ], 422));
     }
 }

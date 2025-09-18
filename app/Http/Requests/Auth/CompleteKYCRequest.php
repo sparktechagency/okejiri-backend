@@ -1,11 +1,12 @@
 <?php
+
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class SocialLoginRequest extends FormRequest
+class CompleteKYCRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,24 +24,16 @@ class SocialLoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'          => 'required|string|max:255',
-            'email'         => 'required|email|max:255',
-            'google_id'     => 'required|string',
-            'photo'         => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-            'role'          => 'required|in:PROVIDER,USER,ADMIN',
-            'provider_type' => 'required_if:role,PROVIDER|in:Individual,Company',
+            'id_card_front'=>'required|image|mimes:png,jpg,jpeg|max:10240',
+            'id_card_back'=>'required|image|mimes:png,jpg,jpeg|max:10240',
+            'selfie'=>'required|image|mimes:png,jpg,jpeg|max:10240',
         ];
-    }
-
-    public function withValidator($validator)
-    {
-
     }
 
     public function messages()
     {
         return [
-            //
+           //
         ];
     }
 
@@ -48,7 +41,7 @@ class SocialLoginRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'message' => $validator->errors()->first(),
-            'errors'  => $validator->errors(),
+            'errors' => $validator->errors(),
         ], 422));
     }
 }

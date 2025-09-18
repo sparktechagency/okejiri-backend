@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Service\NewServiceAddRequest;
 use App\Http\Requests\Service\ServiceStoreRequest;
 use App\Http\Requests\Service\ServiceUpdateRequest;
 use App\Models\Service;
@@ -10,6 +11,7 @@ use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ServiceController extends Controller
 {
@@ -98,6 +100,19 @@ class ServiceController extends Controller
         }
     }
 
+    public function requestAddService(NewServiceAddRequest $request)
+    {
+        try {
+            $new_service_request               = new ServiceRequest();
+            $new_service_request->service_name = $request->service_name;
+            $new_service_request->request_by   = Auth::user()->id;
+            $new_service_request->save();
+
+            return $this->responseSuccess($new_service_request, 'Service add request has been sent successfully.', 201);
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage(), 'Failed to sent request.', 500);
+        }
+    }
     public function requestedServices(Request $request)
     {
         $per_page        = $request->input('per_page') ?? 10;
