@@ -20,7 +20,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::post('check-token', [AuthController::class, 'validateToken']);
     });
 
-    Route::middleware(['auth:api', 'verified.user', 'check.block'])->prefix('/')->group(function () {
+    Route::middleware(['auth:api', 'verified.user'])->prefix('/')->group(function () {
         Route::get('profile', [AuthController::class, 'getProfile']);
         Route::post('edit-profile', [AuthController::class, 'editProfile']);
         Route::post('edit-profile-picture', [AuthController::class, 'editProfilePicture']);
@@ -34,6 +34,11 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::get('notifications', [NotificationController::class, 'notifications']);
         Route::post('mark-notification/{id}', [NotificationController::class, 'singleMark']);
         Route::post('mark-all-notification', [NotificationController::class, 'allMark']);
+
+        // Provider routes
+        Route::middleware('provider')->as('provider')->group(function () {
+
+        });
 
         // User routes
         Route::middleware('user')->as('user')->group(function () {
@@ -54,7 +59,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         });
 
         // Common routes
-        Route::middleware('admin.user')->as('common')->group(function () {
+        Route::middleware('admin.user.provider')->as('common')->group(function () {
             // Messaging
             // Route::post('send-message', [MessageController::class, 'sendMessage']);
             // Route::post('edit-message/{id}', [MessageController::class, 'editMessage']);

@@ -3,6 +3,7 @@
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\CheckIfBlockedMiddleware;
 use App\Http\Middleware\CommonMiddleware;
+use App\Http\Middleware\ProviderMiddleware;
 use App\Http\Middleware\UserMiddleware;
 use App\Http\Middleware\UserVerificationMiddleware;
 use Illuminate\Auth\AuthenticationException;
@@ -21,10 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'verified.user' => UserVerificationMiddleware::class,
-            'check.block'    => CheckIfBlockedMiddleware::class,
             'admin'         => AdminMiddleware::class,
+            'provider'          => ProviderMiddleware::class,
             'user'          => UserMiddleware::class,
-            'admin.user'    => CommonMiddleware::class,
+            'admin.user.provider'    => CommonMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -1,16 +1,17 @@
 <?php
+
 namespace App\Http\Middleware;
 
-use App\Traits\ApiResponse;
 use Closure;
 use Exception;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class CommonMiddleware
+class ProviderMiddleware
 {
-    use ApiResponse;
+      use ApiResponse;
     /**
      * Handle an incoming request.
      *
@@ -18,16 +19,16 @@ class CommonMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        try {
-            $user = Auth::user();
-
-            $allowedRoles = ['USER', 'ADMIN','PROVIDER'];
+          try {
+            $user        = Auth::user();
+            $allowedRole = 'PROVIDER';
 
             if (! $user) {
                 return $this->responseError(null, 'Unauthorized.', 401);
             }
-            if (! in_array($user->role, $allowedRoles)) {
-                return $this->responseError(null, 'You (' . strtolower($user->role) . ') are not allowed. Allowed roles are: ' . implode(', ', array_map('strtolower', $allowedRoles)), 403);
+
+            if ($user->role !== $allowedRole) {
+                return $this->responseError(null, 'Permission denied for role (' . strtolower($user->role) . '). Only ' . strtolower($allowedRole) . 's are allowed.', 403);
             }
 
             return $next($request);
@@ -35,7 +36,5 @@ class CommonMiddleware
         } catch (Exception $exception) {
             return $this->responseError($exception->getMessage(), 'Unauthorized.', 401);
         }
-
     }
-
 }

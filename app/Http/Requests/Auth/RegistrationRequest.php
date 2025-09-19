@@ -36,6 +36,8 @@ class RegistrationRequest extends FormRequest
                     $query->where('role', $role);
                 }),
             ],
+            'role'          => 'required|in:PROVIDER,USER,ADMIN',
+            'provider_type' => 'required_if:role,PROVIDER|in:Individual,Company',
         ];
     }
 

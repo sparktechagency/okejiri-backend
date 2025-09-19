@@ -15,6 +15,7 @@ use App\Http\Requests\Auth\RegistrationRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\SocialLoginRequest;
 use App\Mail\OtpMail;
+use App\Models\Company;
 use App\Models\ProviderService;
 use App\Models\User;
 use App\Notifications\CompleteKYCNotification;
@@ -65,6 +66,7 @@ class AuthController extends Controller
             if ($user_exists && $user_exists->email_verified_at === null) {
                 $user_exists->name           = $request->name;
                 $user_exists->role           = $request->role ?? 'USER';
+                $user_exists->provider_type  = $request->provider_type ?? null;
                 $user_exists->password       = Hash::make($request->password);
                 $user_exists->otp            = $otp;
                 $user_exists->otp_expires_at = $otp_expires_at;
@@ -90,6 +92,7 @@ class AuthController extends Controller
                 $new_user->email          = $request->email;
                 $new_user->password       = Hash::make($request->password);
                 $new_user->role           = $request->role ?? 'USER';
+                $new_user->provider_type  = $request->provider_type ?? null;
                 $new_user->otp            = $otp;
                 $new_user->otp_expires_at = $otp_expires_at;
                 $new_user->status         = 'inactive';
@@ -145,6 +148,18 @@ class AuthController extends Controller
                         'service_id'  => $serviceId,
                     ]);
                 }
+            }
+            if ($request->provider_type == 'Company') {
+                $company               = new Company();
+                $company->provider_id  = $user_id;
+                $company->company_logo = $request->hasFile('business_logo')
+                    ? $this->fileuploadService->setPath('uploads/companies')->saveOptimizedImage($request->file('business_logo'), 40, 512, null, true)
+                    : $this->fileuploadService->setPath('uploads/companies')->generateUserAvatar($request->business_name);
+                $company->company_name     = $request->business_name;
+                $company->company_location = $request->business_location;
+                $company->company_about    = $request->about_business;
+                $company->emp_no           = $request->emp_no;
+                $company->save();
             }
             $user->is_personalization_complete = true;
             $user->save();
@@ -302,19 +317,9 @@ class AuthController extends Controller
 
     public function getProfile()
     {
-        $user = Auth::user();
+        $user = User::with('company', 'provider_services.service')->where('id', Auth::id())->first();
 
-        if ($user && $user->role == 'USER') {
-            return $this->responseSuccess($user, ucfirst(strtolower($user->role)) . " profile retrieved successfully.");
-        }
-        if ($user && $user->role == 'PROVIDER' && $user->provider_type == 'Individual') {
-            return $this->responseSuccess($user, ucfirst(strtolower($user->provider_type)) . ' ' . strtolower($user->role) . " profile retrieved successfully.");
-        }
-        if ($user && $user->role == 'PROVIDER' && $user->provider_type == 'Company') {
-            return $this->responseSuccess($user, ucfirst(strtolower($user->provider_type)) . ' ' . strtolower($user->role) . " profile retrieved successfully.");
-        }
-
-        return $this->responseError('Unauthorized access. User not authenticated.', 401);
+        return $this->responseSuccess($user, ucfirst(strtolower($user->role)) . " profile retrieved successfully.");
     }
 
     public function editProfile(EditProfileRequest $request)

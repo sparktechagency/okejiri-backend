@@ -28,8 +28,14 @@ class CompletePersonalizationRequest extends FormRequest
             'phone'=>'required|string|max:20',
             'address'=>'required|string',
             'role'=>'required|in:USER,PROVIDER',
+            'provider_type' => 'required_if:role,PROVIDER|in:Individual,Company',
             'about'=>'required_if:role,PROVIDER|string',
             'service_id'=>'required_if:role,PROVIDER|array|min:1',
+            'business_logo'=>'sometimes|image|mimes:png,jpg,jpeg|max:10240',
+            'business_name'=>'required_if:provider_type,Company|string|max:255',
+            'business_location'=>'required_if:provider_type,Company|string|max:255',
+            'about_business'=>'required_if:provider_type,Company|string',
+            'emp_no'=>'required_if:provider_type,Company|numeric',
         ];
     }
 
