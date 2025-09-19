@@ -15,7 +15,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $faker      = Faker::create();
-        $statuses   = ['Unverified', 'In Review', 'Verified'];
+        $statuses   = ['Unverified', 'In Review', 'Verified','Rejected'];
         $totalUsers = 5;
 
         for ($i = 1; $i <= $totalUsers; $i++) {

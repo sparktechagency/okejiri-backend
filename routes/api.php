@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'api'], function ($router) {
@@ -52,6 +53,15 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('requested-services', [ServiceController::class, 'requestedServices']);
             Route::delete('requested-services/{id}', [ServiceController::class, 'deleteRequestedServices']);
             Route::post('requested-services', [ServiceController::class, 'addRequestedServices']);
+
+            // users
+            Route::get('users', [UserController::class, 'index']);
+            Route::post('sent-notifications', [UserController::class, 'sentNotifications']);
+            Route::get('kyc-requests', [UserController::class, 'getKycRequests']);
+            Route::get('kyc-requests-details/{user_id}', [UserController::class, 'getKycRequestDetails']);
+            Route::post('accept-kyc/{id}', [UserController::class, 'acceptKyc']);
+            Route::post('reject-kyc/{id}', [UserController::class, 'rejectKyc']);
+            Route::delete('delete-users/{user_id}', [UserController::class, 'deleteUsers']);
 
             Route::apiResource('faqs', FaqController::class)->except('index');
             Route::apiResource('services', ServiceController::class)->except('index');

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId( 'referred_by')->nullable()->constrained('users')->cascadeOnDelete();
+            $table->foreignId('referred_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name');
             $table->string('email')->unique();
             $table->string('phone')->nullable();
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->decimal('longitude', 10, 7)->nullable();
             $table->string('avatar')->default('default_avatar.png');
             $table->enum('role', ['ADMIN', 'USER', 'PROVIDER'])->default('USER');
-            $table->enum('provider_type', ['Individual','Company'])->nullable();
+            $table->enum('provider_type', ['Individual', 'Company'])->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('referral_code')->nullable();
@@ -31,8 +31,8 @@ return new class extends Migration
             $table->string('id_card_front')->nullable();
             $table->string('id_card_back')->nullable();
             $table->string('selfie')->nullable();
-            $table->enum('kyc_status', ['Unverified', 'In Review', 'Verified'])
-            ->default('Unverified');
+            $table->enum('kyc_status', ['Unverified', 'In Review', 'Verified', 'Rejected'])
+                ->default('Unverified');
             $table->longText('about')->nullable();
             $table->boolean('is_personalization_complete')->default(false);
             // // Connected account
