@@ -40,7 +40,6 @@ class UserSeeder extends Seeder
                 'id_card_back'      => $id_card_back,
                 'selfie'            => $selfie,
                 'is_personalization_complete'=>rand(0,1),
-                'referred_by'       => User::where('role', 'USER')->inRandomOrder()->first()?->id,
             ]);
         }
     }

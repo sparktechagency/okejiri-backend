@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\KYCRejectMail;
+use App\Mail\UserDeleteMail;
 use App\Models\Company;
 use App\Models\User;
 use App\Notifications\CompleteKYCNotification;
@@ -138,15 +139,15 @@ class UserController extends Controller
         }
     }
 
-    public function deleteUsers(Request $request ,$user_id)
+    public function deleteUsers(Request $request, $user_id)
     {
-               $request->validate([
+        $request->validate([
             'reason' => 'required|string',
         ]);
         try {
-             $reason           = $request->input('reason');
-            $user = User::with('company')->findOrFail($user_id);
-//   Mail::to($user->email)->send(new KYCRejectMail($user->name, $reason));
+            $reason = $request->input('reason');
+            $user   = User::with('company')->findOrFail($user_id);
+            Mail::to($user->email)->send(new UserDeleteMail($user->name, $reason));
             if ($user->company) {
                 $company = $user->company;
 
@@ -187,6 +188,16 @@ class UserController extends Controller
             $user->delete();
 
             return $this->responseSuccess($user, "User deleted successfully.");
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+
+    public function userDetails($user_id)
+    {
+        try {
+            $user = User::findOrFail($user_id);
+            return $this->responseSuccess($user, 'User details retrieved successfully');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
         }

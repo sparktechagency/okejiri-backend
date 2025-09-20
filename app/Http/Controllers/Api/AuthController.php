@@ -17,6 +17,8 @@ use App\Http\Requests\Auth\SocialLoginRequest;
 use App\Mail\OtpMail;
 use App\Models\Company;
 use App\Models\ProviderService;
+use App\Models\ReferUser;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\CompleteKYCNotification;
 use App\Services\FileUploadService;
@@ -35,8 +37,9 @@ class AuthController extends Controller
 {
     use ApiResponse;
     protected $fileuploadService;
-    private $avatarPath  = 'uploads/users/avatar';
-    private $defaultFile = ['default_avatar.png'];
+    private $avatarPath        = 'uploads/users/avatar';
+    private $company_logo_path = 'uploads/companies';
+    private $defaultFile       = ['default_avatar.png'];
 
     public function __construct(FileUploadService $fileuploadService)
     {
@@ -59,9 +62,9 @@ class AuthController extends Controller
                     $meta_data
                 );
             }
-
-            $otp            = rand(000000, 999999);
-            $otp_expires_at = now()->addMinutes(10);
+            $referral_rewards = Setting::first()->referral_bonus_amount;
+            $otp              = rand(100000, 999999);
+            $otp_expires_at   = now()->addMinutes(10);
 
             if ($user_exists && $user_exists->email_verified_at === null) {
                 $user_exists->name           = $request->name;
@@ -79,11 +82,19 @@ class AuthController extends Controller
                 $user_exists->avatar = $request->hasFile('photo')
                     ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
                     : $this->fileuploadService->generateUserAvatar($request->name);
-                if ($request->referral_code) {
-                    $referred_by              = User::where('role', $request->role)->where('referral_code', $request->referral_code)->first()?->id;
-                    $user_exists->referred_by = $referred_by;
-                }
                 $user_exists->save();
+                if ($request->referral_code) {
+                    $referrer         = User::where('role', $request->role)->where('referral_code', $request->referral_code)->first();
+                    $already_referred = ReferUser::where('referrer', $referrer->id)->where('referred', $user_exists->id)->first();
+
+                    if (! $already_referred) {
+                        ReferUser::create([
+                            'referrer'         => $referrer->id,
+                            'referred'         => $user_exists->id,
+                            'referral_rewards' => $referral_rewards,
+                        ]);
+                    }
+                }
                 $user = $user_exists;
 
             } else {
@@ -101,12 +112,20 @@ class AuthController extends Controller
                 $new_user->avatar = $request->hasFile('photo')
                     ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
                     : $this->fileuploadService->generateUserAvatar($request->name);
+                $new_user->save();
 
                 if ($request->referral_code) {
-                    $referred_by           = User::where('role', $request->role)->where('referral_code', $request->referral_code)->first()?->id;
-                    $new_user->referred_by = $referred_by;
+                    $referrer = User::where('role', $request->role)->where('referral_code', $request->referral_code)->first();
+
+                    $already_referred = ReferUser::where('referrer', $referrer->id)->where('referred', $new_user->id)->first();
+                    if (! $already_referred) {
+                        ReferUser::create([
+                            'referrer'         => $referrer->id,
+                            'referred'         => $new_user->id,
+                            'referral_rewards' => $referral_rewards,
+                        ]);
+                    }
                 }
-                $new_user->save();
                 $user = $new_user;
 
                 $user->notify(new CompleteKYCNotification());
@@ -237,7 +256,7 @@ class AuthController extends Controller
                 }
             }
             if ($user->email_verified_at == null) {
-                $otp                  = rand(000000, 999999);
+                $otp                  = rand(100000, 999999);
                 $otp_expires_at       = now()->addMinutes(10);
                 $user->otp            = $otp;
                 $user->otp_expires_at = $otp_expires_at;
@@ -278,6 +297,14 @@ class AuthController extends Controller
         $user->otp_expires_at    = null;
         $user->status            = 'active';
         $user->save();
+        $referred_info = ReferUser::where('referred', $user->id)->first();
+        if ($user->email_verified_at) {
+            $referrer                   = User::find($referred_info->referrer);
+            $referrer->referral_balance = $referrer->referral_balance += $referred_info->referral_rewards;
+            $referrer->save();
+            $referred_info->status = 'approved';
+            $referred_info->save();
+        }
         Auth::login($user);
         $responseWithToken = $this->generateTokenResponse($user);
         return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
@@ -287,7 +314,7 @@ class AuthController extends Controller
     {
         try {
             $user                 = User::where('email', $request->email)->first();
-            $otp                  = rand(000000, 999999);
+            $otp                  = rand(100000, 999999);
             $otp_expires_at       = now()->addMinutes(10);
             $user->otp            = $otp;
             $user->otp_expires_at = $otp_expires_at;
@@ -295,7 +322,6 @@ class AuthController extends Controller
 
             // Send OTP
             $this->sendMail($request->email, $otp, 'reset_password');
-            // $this->sendSms($user->phone, $otp);
 
             $meta_data = ['redirect_verification' => true];
             return $this->responseSuccess(null, 'A OTP has been sent to your email.', 200, 'success', $meta_data);
@@ -324,19 +350,47 @@ class AuthController extends Controller
 
     public function editProfile(EditProfileRequest $request)
     {
-        $user          = Auth::user();
-        $user->name    = $request->name ?? $user->name;
-        $user->phone   = $request->phone ?? $user->phone;
-        $user->address = $request->address ?? $user->address;
-        $user->save();
+        $user = Auth::user();
+        if ($user->provider_type == 'Company') {
+            $company                   = Company::where('provider_id', Auth::id())->first();
+            $company->company_name     = $request->business_name ?? $company->company_name;
+            $company->company_location = $request->business_location ?? $company->company_location;
+            $company->company_about    = $request->about_business ?? $company->company_about;
+            $company->emp_no           = $request->emp_no ?? $company->emp_no;
+            $company->save();
+            if ($request->has('service_id')) {
+                $provider_services = ProviderService::where('provider_id', Auth::id())
+                    ->pluck('service_id')
+                    ->toArray();
+                foreach ($request->service_id as $serviceId) {
+                    if (! in_array($serviceId, $provider_services)) {
+                        ProviderService::create([
+                            'provider_id' => Auth::id(),
+                            'service_id'  => $serviceId,
+                        ]);
+                    }
+                }
+            }
+        } else {
+            $user->name    = $request->name ?? $user->name;
+            $user->phone   = $request->phone ?? $user->phone;
+            $user->address = $request->address ?? $user->address;
+            $user->save();
+        }
         return $this->responseSuccess($user, 'User profile updated successfully.');
     }
 
     public function editProfilePicture(EditProfilePictureRequest $request)
     {
-        $user         = Auth::user();
-        $user->avatar = $this->fileuploadService->updateOptimizedImage($request->file('photo'), $user->avatar, 40, 512, null, true);
-        $user->save();
+        $user = Auth::user();
+        if ($user->provider_type == 'Company') {
+            $company               = Company::where('provider_id', Auth::id())->first();
+            $company->company_logo = $this->fileuploadService->setPath($this->company_logo_path)->updateOptimizedImage($request->file('photo'), $company->company_logo, 40, 512, null, true);
+            $company->save();
+        } else {
+            $user->avatar = $this->fileuploadService->updateOptimizedImage($request->file('photo'), $user->avatar, 40, 512, null, true);
+            $user->save();
+        }
         return $this->responseSuccess($user, 'Profile picture updated successfully.');
     }
 

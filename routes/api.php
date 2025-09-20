@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\ReferralManagementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -62,7 +63,9 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('accept-kyc/{id}', [UserController::class, 'acceptKyc']);
             Route::post('reject-kyc/{id}', [UserController::class, 'rejectKyc']);
             Route::delete('delete-users/{user_id}', [UserController::class, 'deleteUsers']);
+            Route::get('user-details/{user_id}', [UserController::class, 'userDetails']);
 
+            Route::post('update-settings', [ReferralManagementController::class, 'updateSettings']);
             Route::apiResource('faqs', FaqController::class)->except('index');
             Route::apiResource('services', ServiceController::class)->except('index');
             Route::apiResource('promotions', PromotionController::class)->except('index');

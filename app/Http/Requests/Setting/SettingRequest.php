@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests\Setting;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class EditProfileRequest extends FormRequest
+class SettingRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,20 +24,15 @@ class EditProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string|max:255',
-            'business_name' => 'sometimes|string|max:255',
-            'business_location' => 'sometimes|string|max:255',
-            'emp_no' => 'sometimes|numeric',
-            'service_id'=>'sometimes|array',
+            'referral_bonus_amount'=>'nullable|numeric',
+            'minimum_withdrawal_threshold'=>'nullable|numeric',
         ];
     }
 
     public function messages()
     {
         return [
-            //
+           //
         ];
     }
 
