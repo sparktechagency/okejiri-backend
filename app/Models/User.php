@@ -26,7 +26,6 @@ class User extends Authenticatable implements JWTSubject
     protected $hidden = [
         'password',
         'remember_token',
-        'email_verified_at',
         'stripe_charges_enabled',
         'stripe_payouts_enabled',
         'stripe_account_id',
@@ -171,6 +170,10 @@ class User extends Authenticatable implements JWTSubject
         return null;
     }
     public function getIsPersonalizationCompleteAttribute($value)
+    {
+        return (bool) $value;
+    }
+    public function getHasServiceAttribute($value)
     {
         return (bool) $value;
     }

@@ -167,6 +167,7 @@ class AuthController extends Controller
                         'service_id'  => $serviceId,
                     ]);
                 }
+                $user->has_service = true;
             }
             if ($request->provider_type == 'Company') {
                 $company               = new Company();
@@ -292,18 +293,22 @@ class AuthController extends Controller
             return $this->responseError(null, 'OTP is incorrect or has expired.', 400);
         }
 
-        $user->email_verified_at = now();
-        $user->otp               = null;
-        $user->otp_expires_at    = null;
-        $user->status            = 'active';
+        if ($user->email_verified_at == null) {
+            $user->email_verified_at = now();
+        }
+        $user->otp            = null;
+        $user->otp_expires_at = null;
+        $user->status         = 'active';
         $user->save();
-        $referred_info = ReferUser::where('referred', $user->id)->first();
-        if ($user->email_verified_at) {
-            $referrer                   = User::find($referred_info->referrer);
-            $referrer->referral_balance = $referrer->referral_balance += $referred_info->referral_rewards;
-            $referrer->save();
-            $referred_info->status = 'approved';
-            $referred_info->save();
+        if ($user->email_verified_at != null) {
+            $referred_info = ReferUser::where('referred', $user->id)->where('status', 'pending')->first();
+            if ($referred_info) {
+                $referrer                   = User::find($referred_info->referrer);
+                $referrer->referral_balance = $referrer->referral_balance += $referred_info->referral_rewards;
+                $referrer->save();
+                $referred_info->status = 'approved';
+                $referred_info->save();
+            }
         }
         Auth::login($user);
         $responseWithToken = $this->generateTokenResponse($user);
@@ -375,6 +380,7 @@ class AuthController extends Controller
             $user->name    = $request->name ?? $user->name;
             $user->phone   = $request->phone ?? $user->phone;
             $user->address = $request->address ?? $user->address;
+            $user->about   = $request->about ?? $user->about;
             $user->save();
         }
         return $this->responseSuccess($user, 'User profile updated successfully.');
@@ -504,6 +510,36 @@ class AuthController extends Controller
         return $this->responseSuccess(null, 'Kyc verification apply successfully.');
     }
 
+    public function switchRole(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if ($user->role == 'USER') {
+                $new_role      = 'PROVIDER';
+                $provider_type = 'Individual';
+            }
+            if ($user->role == 'PROVIDER') {
+                $new_role      = 'USER';
+                $provider_type = null;
+            }
+            $user->role          = $new_role;
+            $user->provider_type = $provider_type;
+            $user->save();
+            if ($user->role == 'PROVIDER') {
+                if ($user->has_service) {
+                    $meta_data = ['redirect_personalization' => false];
+                } else {
+                    $meta_data = ['redirect_personalization' => true];
+                }
+            } elseif ($user->role == 'USER') {
+                $meta_data = ['redirect_personalization' => false];
+            }
+            $responseWithToken = $this->generateTokenResponse($user);
+            return $this->responseSuccess($responseWithToken, 'Role switched successfully.', 200, 'success', $meta_data);
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage(), 'An error occurred while switching roles.');
+        }
+    }
     private function generateTokenResponse($user)
     {
         $token = JWTAuth::fromUser($user);

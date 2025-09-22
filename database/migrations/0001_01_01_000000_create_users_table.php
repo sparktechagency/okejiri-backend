@@ -31,14 +31,16 @@ return new class extends Migration
             $table->string('id_card_back')->nullable();
             $table->string('selfie')->nullable();
             $table->enum('kyc_status', ['Unverified', 'In Review', 'Verified', 'Rejected'])
-                ->default('Unverified');
+            ->default('Unverified');
             $table->longText('about')->nullable();
+            $table->boolean('has_service')->default(false);
             $table->boolean('is_personalization_complete')->default(false);
             // // Connected account
             // $table->string('stripe_account_id')->nullable();
             // $table->boolean('stripe_charges_enabled')->default(false);
             // $table->boolean('stripe_payouts_enabled')->default(false);
 
+            $table->decimal('discount')->default(0)->comment('product discount. this only for provider role');
             $table->string('otp')->nullable()->unique();
             $table->string('otp_expires_at')->nullable();
             $table->string('google_id')->nullable();

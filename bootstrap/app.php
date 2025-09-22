@@ -5,6 +5,7 @@ use App\Http\Middleware\CheckIfBlockedMiddleware;
 use App\Http\Middleware\CommonMiddleware;
 use App\Http\Middleware\ProviderMiddleware;
 use App\Http\Middleware\UserMiddleware;
+use App\Http\Middleware\UserProviderMiddleware;
 use App\Http\Middleware\UserVerificationMiddleware;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin'         => AdminMiddleware::class,
             'provider'          => ProviderMiddleware::class,
             'user'          => UserMiddleware::class,
+            'user.provider'    => UserProviderMiddleware::class,
             'admin.user.provider'    => CommonMiddleware::class,
         ]);
     })

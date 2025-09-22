@@ -26,6 +26,8 @@ class DatabaseSeeder extends Seeder
             PromotionSeeder::class,
             PackageSeeder::class,
             ServiceRequestSeeder::class,
+            ReferUserSeeder::class,
+            ProviderPortfolioSeeder::class,
         ]);
     }
 }

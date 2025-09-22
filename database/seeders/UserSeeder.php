@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
                 'id_card_front'     => $id_card_front,
                 'id_card_back'      => $id_card_back,
                 'selfie'            => $selfie,
-                'is_personalization_complete'=>rand(0,1),
+                'is_personalization_complete'=>rand(0,1)
             ]);
         }
     }

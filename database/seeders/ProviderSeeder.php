@@ -41,6 +41,8 @@ class ProviderSeeder extends Seeder
                 'id_card_front'               => $id_card_front,
                 'id_card_back'                => $id_card_back,
                 'selfie'                      => $selfie,
+                'has_service'=>true,
+                'discount'=>rand(0, 50),
                 'is_personalization_complete' => rand(0, 1),
             ]);
         }

@@ -4,9 +4,11 @@ use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ReferralManagementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\ProviderPortfolioController;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'api'], function ($router) {
@@ -39,6 +41,8 @@ Route::group(['middleware' => 'api'], function ($router) {
 
         // Provider routes
         Route::middleware('provider')->as('provider')->group(function () {
+            Route::apiResource('portfolios', ProviderPortfolioController::class);
+            Route::post('manage-discounts', [ProviderController::class, 'manageDiscounts']);
 
         });
 
@@ -71,7 +75,11 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::apiResource('promotions', PromotionController::class)->except('index');
         });
 
-        // Common routes
+        // user.provider routes
+        Route::middleware('user.provider')->as('user.provider')->group(function () {
+            Route::get('my-referrals', [ReferralManagementController::class, 'myReferrals']);
+        });
+
         Route::middleware('admin.user.provider')->as('common')->group(function () {
             // Messaging
             // Route::post('send-message', [MessageController::class, 'sendMessage']);
@@ -107,6 +115,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         // });
     });
     Route::get('pages', [PageController::class, 'getPage']);
+    Route::post('switch-role', [AuthController::class, 'switchRole']);
     Route::apiResource('faqs', FaqController::class)->only('index');
     Route::apiResource('services', ServiceController::class)->only('index');
     Route::apiResource('promotions', PromotionController::class)->only('index');

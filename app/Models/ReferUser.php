@@ -8,4 +8,8 @@ class ReferUser extends Model
 {
     protected $guarded = ['id'];
 
+    public function referred_user(){
+        return $this->belongsTo(User::class,'referred');
+    }
+
 }
