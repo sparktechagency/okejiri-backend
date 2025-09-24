@@ -13,8 +13,12 @@ return new class extends Migration
     {
         Schema::create('packages', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('provider_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
             $table->string('title');
+            $table->string('image');
+            $table->decimal('price', 8, 2);
+            $table->string('delivery_time');
             $table->timestamps();
         });
     }

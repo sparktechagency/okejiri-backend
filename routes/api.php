@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\Api\ProviderServiceController;
 use App\Http\Controllers\Api\ReferralManagementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\UserController;
@@ -43,7 +44,13 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::middleware('provider')->as('provider')->group(function () {
             Route::apiResource('portfolios', ProviderPortfolioController::class);
             Route::post('manage-discounts', [ProviderController::class, 'manageDiscounts']);
+            Route::get('my-services', [ProviderController::class, 'myServices']);
+            Route::delete('delete-my-services/{provider_service_id}', [ProviderController::class, 'deleteMyServices']);
+            Route::post('add-new-services', [ProviderController::class, 'addNewServices']);
 
+            Route::get('my-service-package', [ProviderServiceController::class, 'myServicePackage']);
+            Route::post('my-service-package', [ProviderServiceController::class, 'addMyServicePackage']);
+            Route::get('my-service-package/{package_id}', [ProviderServiceController::class, 'myServicePackageDetails']);
         });
 
         // User routes

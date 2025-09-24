@@ -39,4 +39,13 @@ class Package extends Model
     public function service(){
         return $this->belongsTo(Service::class);
     }
+    public function provider(){
+        return $this->belongsTo(User::class,'provider_id');
+    }
+    public function package_detail_items(){
+        return $this->hasMany(PackageDetail::class);
+    }
+    public function available_time(){
+        return $this->hasMany(PackageAvailableTime::class);
+    }
 }

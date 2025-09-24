@@ -1,9 +1,11 @@
 <?php
-
 namespace Database\Seeders;
 
 use App\Models\Package;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Service;
+use App\Models\User;
+use App\Services\FileUploadService;
+use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 
 class PackageSeeder extends Seeder
@@ -13,11 +15,20 @@ class PackageSeeder extends Seeder
      */
     public function run(): void
     {
-        $totalPackage = 500;
+        $faker        = Faker::create();
+        $totalPackage = 30;
         for ($i = 1; $i <= $totalPackage; $i++) {
+            $provider_id = User::where('role', 'PROVIDER')->inRandomOrder()->first()->id;
+            $service_id  = Service::inRandomOrder()->first()->id;
+            $fileUpload  = new FileUploadService('public_path');
+            $image       = $fileUpload->setPath('placeholders/packages')->generatePlaceholderImage();
             Package::create([
-                'service_id'=>rand(1,12),
-                'title'=>'a'
+                'provider_id'   => $provider_id,
+                'service_id'    => $service_id,
+                'title'         => $faker->sentence(4),
+                'image'         => $image,
+                'price'         => rand(50, 500),
+                'delivery_time' => rand(1, 10),
             ]);
         }
     }

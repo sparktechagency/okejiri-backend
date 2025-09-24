@@ -25,6 +25,8 @@ class DatabaseSeeder extends Seeder
             FaqSeeder::class,
             PromotionSeeder::class,
             PackageSeeder::class,
+            PackageDetailSeeder::class,
+            PackageAvailableTimeSeeder::class,
             ServiceRequestSeeder::class,
             ReferUserSeeder::class,
             ProviderPortfolioSeeder::class,
