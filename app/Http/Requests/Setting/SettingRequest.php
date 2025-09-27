@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Requests\Setting;
 
 use Illuminate\Contracts\Validation\Validator;
@@ -24,15 +23,19 @@ class SettingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'referral_bonus_amount'=>'nullable|numeric',
-            'minimum_withdrawal_threshold'=>'nullable|numeric',
+            'referral_bonus_amount'        => 'nullable|numeric',
+            'minimum_withdrawal_threshold' => 'nullable|numeric',
+            'three_day_boosting_price'     => 'nullable|numeric',
+            'seven_day_boosting_price'     => 'nullable|numeric',
+            'fifteen_day_boosting_price'   => 'nullable|numeric',
+            'thirty_day_boosting_price'    => 'nullable|numeric',
         ];
     }
 
     public function messages()
     {
         return [
-           //
+            //
         ];
     }
 
@@ -40,7 +43,7 @@ class SettingRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'message' => $validator->errors()->first(),
-            'errors' => $validator->errors(),
+            'errors'  => $validator->errors(),
         ], 422));
     }
 }

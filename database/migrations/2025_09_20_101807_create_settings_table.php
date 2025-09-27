@@ -15,6 +15,10 @@ return new class extends Migration
             $table->id();
             $table->decimal('referral_bonus_amount', 8, 2)->nullable();
             $table->decimal('minimum_withdrawal_threshold', 8, 2)->nullable();
+            $table->decimal('three_day_boosting_price', 8, 2)->nullable();
+            $table->decimal('seven_day_boosting_price', 8, 2)->nullable();
+            $table->decimal('fifteen_day_boosting_price', 8, 2)->nullable();
+            $table->decimal('thirty_day_boosting_price', 8, 2)->nullable();
             $table->timestamps();
         });
     }

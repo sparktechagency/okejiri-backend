@@ -13,18 +13,6 @@ use Illuminate\Http\Request;
 class ReferralManagementController extends Controller
 {
     use ApiResponse;
-    public function updateSettings(SettingRequest $request)
-    {
-        try {
-            $setting                               = Setting::findOrFail(1);
-            $setting->referral_bonus_amount        = $request->referral_bonus_amount;
-            $setting->minimum_withdrawal_threshold = $request->minimum_withdrawal_threshold;
-            $setting->save();
-            return $this->responseSuccess($setting, 'Setting updated successfully.');
-        } catch (Exception $e) {
-            return $this->responseError($e->getMessage(), 'Failed to update setting.', 500);
-        }
-    }
 
     public function myReferrals(Request $request){
         try {

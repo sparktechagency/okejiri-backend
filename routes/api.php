@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\ProviderPortfolioController;
 use App\Http\Controllers\Api\ProviderServiceController;
 use App\Http\Controllers\Api\ReferralManagementController;
+use App\Http\Controllers\Api\SettingController;
 
 Route::group(['middleware' => 'api'], function ($router) {
 
@@ -82,7 +83,8 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::delete('delete-users/{user_id}', [UserController::class, 'deleteUsers']);
             Route::get('user-details/{user_id}', [UserController::class, 'userDetails']);
 
-            Route::post('update-settings', [ReferralManagementController::class, 'updateSettings']);
+            Route::get('get-settings', [SettingController::class, 'getSettings']);
+            Route::post('update-settings', [SettingController::class, 'updateSettings']);
             Route::apiResource('faqs', FaqController::class)->except('index');
             Route::apiResource('services', ServiceController::class)->except('index');
             Route::apiResource('promotions', PromotionController::class)->except('index');
