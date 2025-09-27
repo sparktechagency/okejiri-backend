@@ -3,6 +3,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Package\AddMyServicePackageRequest;
+use App\Http\Requests\Package\AddServiceAvailableTimeRequest;
+use App\Http\Requests\Package\UpdateServiceAvailableTimeRequest;
+use App\Http\Requests\Package\UpdateServicePackageRequest;
 use App\Models\Package;
 use App\Models\PackageAvailableTime;
 use App\Models\PackageDetail;
@@ -30,7 +33,9 @@ class ProviderServiceController extends Controller
         ]);
         $per_page = $request->input('per_page', 10);
 
-        $packages = Package::with('package_detail_items')->where('provider_id', Auth::id())->latest('id')->paginate($per_page);
+        $packages = Package::with(['package_detail_items' => function ($q) {
+            $q->latest('id');
+        }])->where('provider_id', Auth::id())->latest('id')->paginate($per_page);
 
         return $this->responseSuccess($packages, 'My Service Packages retrieved successfully.');
     }
@@ -79,25 +84,101 @@ class ProviderServiceController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'message' => 'Package created successfully!',
-                'package' => $package,
-            ], 201);
-
+          return  $this->responseSuccess($package, 'Package created successfully.', 201);
         } catch (Exception $e) {
             DB::rollBack();
-
-            return response()->json([
-                'message' => 'Something went wrong while creating the package.',
-                'error'   => $e->getMessage(),
-            ], 500);
+            return $this->responseError($e->getMessage());
         }
     }
-       public function myServicePackageDetails(Request $request,$package_id)
+
+    public function myServicePackageDetails(Request $request, $package_id)
     {
-        $packages = Package::with('package_detail_items','available_time')->where('id', $package_id)->first();
+        $packages = Package::with(['package_detail_items' => function ($q) {
+            $q->latest('id');
+        }, 'available_time'=> function ($q) {
+            $q->latest('id');
+        }])->where('id', $package_id)->first();
 
         return $this->responseSuccess($packages, 'Packages details retrieved successfully.');
     }
+
+    public function myServicePackageEdit(UpdateServicePackageRequest $request, $package_id)
+    {
+        try {
+            $package        = Package::findOrFail($package_id);
+            $package->title = $request->title;
+            $package->image = $this->fileuploadService->updateOptimizedImage(
+                $request->file('image'),
+                $package->image,
+                40,
+                1320,
+                null,
+                true
+            );
+            $package->price         = $request->price;
+            $package->delivery_time = $request->delivery_time;
+            $package->save();
+            return $this->responseSuccess($package, 'Package updated successfully.', 200);
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+
+    public function addServicePackageItem(Request $request)
+    {
+        $request->validate([
+            'package_id' => 'required|exists:packages,id',
+            'item'       => 'required|string|max:255',
+        ]);
+        try {
+            $item = PackageDetail::create([
+                'package_id' => $request->package_id,
+                'item'       => $request->item,
+            ]);
+            return $this->responseSuccess($item, 'Package item added successfully.', 201);
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+    public function deleteServicePackageItem($package_item_id)
+    {
+        try {
+            $item = PackageDetail::findOrFail($package_item_id);
+            $item->delete();
+            return $this->responseSuccess($item, 'Package item deleted successfully.', 200);
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+
+      public function addServiceAvailableTime(AddServiceAvailableTimeRequest $request)
+    {
+
+        try {
+            $available_time = PackageAvailableTime::create([
+                'package_id' => $request->package_id,
+                'available_time_from'       => $request->available_time_from,
+                'available_time_to'       => $request->available_time_to,
+            ]);
+            return $this->responseSuccess($available_time, 'Package available time added successfully.', 201);
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+    public function updateServiceAvailableTime(UpdateServiceAvailableTimeRequest $request, $package_id)
+{
+    try {
+        $available_time = PackageAvailableTime::findOrFail($package_id);
+
+        $available_time->available_time_from = $request->available_time_from;
+        $available_time->available_time_to   = $request->available_time_to;
+
+        $available_time->save();
+
+        return $this->responseSuccess($available_time, 'Package available time updated successfully.', 200);
+    } catch (\Exception $e) {
+        return $this->responseError($e->getMessage());
+    }
+}
 
 }

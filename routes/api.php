@@ -1,16 +1,17 @@
 <?php
-use App\Http\Controllers\Api\AuthController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FaqController;
-use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PageController;
-use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\ProviderPortfolioController;
 use App\Http\Controllers\Api\ProviderServiceController;
 use App\Http\Controllers\Api\ReferralManagementController;
-use App\Http\Controllers\Api\ServiceController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\ProviderPortfolioController;
-use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'api'], function ($router) {
 
@@ -51,6 +52,11 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('my-service-package', [ProviderServiceController::class, 'myServicePackage']);
             Route::post('my-service-package', [ProviderServiceController::class, 'addMyServicePackage']);
             Route::get('my-service-package/{package_id}', [ProviderServiceController::class, 'myServicePackageDetails']);
+            Route::put('my-service-package/{package_id}', [ProviderServiceController::class, 'myServicePackageEdit']);
+            Route::post('add-service-package-detail-item', [ProviderServiceController::class, 'addServicePackageItem']);
+            Route::delete('delete-service-package-detail-item/{package_id}', [ProviderServiceController::class, 'deleteServicePackageItem']);
+            Route::post('add-service-available-time', [ProviderServiceController::class, 'addServiceAvailableTime']);
+            Route::put('update-service-available-time/{package_id}', [ProviderServiceController::class, 'updateServiceAvailableTime']);
         });
 
         // User routes
@@ -84,19 +90,20 @@ Route::group(['middleware' => 'api'], function ($router) {
 
         // user.provider routes
         Route::middleware('user.provider')->as('user.provider')->group(function () {
+            Route::post('switch-role', [AuthController::class, 'switchRole']);
             Route::get('my-referrals', [ReferralManagementController::class, 'myReferrals']);
         });
 
         Route::middleware('admin.user.provider')->as('common')->group(function () {
             // Messaging
-            // Route::post('send-message', [MessageController::class, 'sendMessage']);
-            // Route::post('edit-message/{id}', [MessageController::class, 'editMessage']);
-            // Route::get('get-message', [MessageController::class, 'getMessage']);
-            // Route::post('mark-as-read', [MessageController::class, 'markAsRead']);
-            // Route::delete('unsend-for-me/{id}', [MessageController::class, 'unsendForMe']);
-            // Route::delete('unsend-for-everyone/{id}', [MessageController::class, 'unsendForEveryone']);
-            // Route::get('search-new-user', [MessageController::class, 'searchNewUser']);
-            // Route::get('chat-list', [MessageController::class, 'chatList']);
+            Route::post('send-message', [MessageController::class, 'sendMessage']);
+            Route::post('edit-message/{id}', [MessageController::class, 'editMessage']);
+            Route::get('get-message', [MessageController::class, 'getMessage']);
+            Route::post('mark-as-read', [MessageController::class, 'markAsRead']);
+            Route::delete('unsend-for-me/{id}', [MessageController::class, 'unsendForMe']);
+            Route::delete('unsend-for-everyone/{id}', [MessageController::class, 'unsendForEveryone']);
+            Route::get('search-new-user', [MessageController::class, 'searchNewUser']);
+            Route::get('chat-list', [MessageController::class, 'chatList']);
         });
 
         // Stripe routes
@@ -122,7 +129,6 @@ Route::group(['middleware' => 'api'], function ($router) {
         // });
     });
     Route::get('pages', [PageController::class, 'getPage']);
-    Route::post('switch-role', [AuthController::class, 'switchRole']);
     Route::apiResource('faqs', FaqController::class)->only('index');
     Route::apiResource('services', ServiceController::class)->only('index');
     Route::apiResource('promotions', PromotionController::class)->only('index');
