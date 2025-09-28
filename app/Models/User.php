@@ -173,6 +173,10 @@ class User extends Authenticatable implements JWTSubject
     {
         return (bool) $value;
     }
+    public function getIsBoostedAttribute($value)
+    {
+        return (bool) $value;
+    }
     public function getHasServiceAttribute($value)
     {
         return (bool) $value;

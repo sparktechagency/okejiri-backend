@@ -35,6 +35,7 @@ return new class extends Migration
             $table->longText('about')->nullable();
             $table->boolean('has_service')->default(false);
             $table->boolean('is_personalization_complete')->default(false);
+            $table->boolean('is_boosted')->default(false);
             // // Connected account
             // $table->string('stripe_account_id')->nullable();
             // $table->boolean('stripe_charges_enabled')->default(false);

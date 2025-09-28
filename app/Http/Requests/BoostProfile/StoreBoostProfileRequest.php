@@ -1,11 +1,11 @@
 <?php
-namespace App\Http\Requests\Stripe\Payment;
+namespace App\Http\Requests\BoostProfile;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class CreatePaymentLinkRequest extends FormRequest
+class StoreBoostProfileRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,19 +23,17 @@ class CreatePaymentLinkRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount'      => 'required|numeric|min:1',
-            'currency'    => 'required|string|size:3',
-            'product_id'  => 'required|integer|exists:products,id',
-            'quantity'    => 'sometimes|numeric|min:1',
-            'success_url' => 'required|url',
-            'cancel_url'  => 'required|url',
+            'number_of_days' => 'required|numeric|in:3,7,15,30',
+            'payment_method' => 'required|in:stripe,referral_balance',
+            'payment_amount' => 'required|numeric|min:0',
+            'payment_intent_id'=>'required_if:payment_method,stripe'
         ];
     }
 
     public function messages()
     {
         return [
-            'currency.size' => 'Currency code must be exactly 3 characters (e.g., USD, BDT).',
+            //
         ];
     }
 

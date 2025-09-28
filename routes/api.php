@@ -6,13 +6,15 @@ use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\BoostProfileController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\ProviderPortfolioController;
+use App\Http\Controllers\Api\Stripe\PaymentController;
 use App\Http\Controllers\Api\ProviderServiceController;
 use App\Http\Controllers\Api\ReferralManagementController;
-use App\Http\Controllers\Api\SettingController;
 
 Route::group(['middleware' => 'api'], function ($router) {
 
@@ -88,12 +90,22 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::apiResource('faqs', FaqController::class)->except('index');
             Route::apiResource('services', ServiceController::class)->except('index');
             Route::apiResource('promotions', PromotionController::class)->except('index');
+
+            Route::get('get-boosting-requests', [BoostProfileController::class, 'getBoostingRequests']);
+            Route::get('get-boosting-requests/{request_id}', [BoostProfileController::class, 'getBoostingRequestDetails']);
+            Route::post('accept-boosting-requests/{request_id}', [BoostProfileController::class, 'acceptBoostingRequest']);
+            Route::post('reject-boosting-requests/{request_id}', [BoostProfileController::class, 'rejectBoostingRequest']);
+            Route::get('get-boosting-profiles', [BoostProfileController::class, 'getBoostingProfiles']);
+            Route::get('get-boosting-profiles/{id}', [BoostProfileController::class, 'getBoostingProfileDetails']);
+            Route::post('toggle-boosting-status/{id}', [BoostProfileController::class, 'toggleBoostingStatus']);
         });
 
         // user.provider routes
         Route::middleware('user.provider')->as('user.provider')->group(function () {
             Route::post('switch-role', [AuthController::class, 'switchRole']);
             Route::get('my-referrals', [ReferralManagementController::class, 'myReferrals']);
+
+            Route::post('boost-my-profile', [BoostProfileController::class, 'boostMyProfile']);
         });
 
         Route::middleware('admin.user.provider')->as('common')->group(function () {
@@ -109,7 +121,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         });
 
         // Stripe routes
-        // Route::prefix('stripe')->group(function () {
+        Route::prefix('stripe')->group(function () {
         //     Route::prefix('connected')->group(function () {
         //         Route::post('account-create', [ConnectController::class, 'createAccount']);
         //         Route::post('account-link', [ConnectController::class, 'createAccountLink']);
@@ -120,15 +132,14 @@ Route::group(['middleware' => 'api'], function ($router) {
         //         Route::post('payout-instant', [ConnectController::class, 'createInstantPayout']);
         //     });
 
-        //     Route::prefix('payment')->group(function () {
-        //         Route::post('payment-intent', [PaymentController::class, 'createPaymentIntent']);
-        //         Route::post('payment-link', [PaymentController::class, 'createPaymentLink']);
-        //     });
+            Route::prefix('payment')->group(function () {
+                Route::post('payment-intent', [PaymentController::class, 'createPaymentIntent']);
+            });
 
         //     Route::prefix('subscription')->group(function () {
 
         //     });
-        // });
+        });
     });
     Route::get('pages', [PageController::class, 'getPage']);
     Route::apiResource('faqs', FaqController::class)->only('index');

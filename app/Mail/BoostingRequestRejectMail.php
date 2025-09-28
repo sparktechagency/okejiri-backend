@@ -9,11 +9,15 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class UserDeleteMail extends Mailable implements ShouldQueue
+class BoostingRequestRejectMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-public $name,$reason;
+    /**
+     * Create a new message instance.
+     */
+
+ public $name,$reason;
     public function __construct($name,$reason)
     {
         $this->name=$name;
@@ -26,7 +30,7 @@ public $name,$reason;
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Delete Account',
+            subject: 'Boosting Request Rejection',
         );
     }
 
@@ -36,7 +40,7 @@ public $name,$reason;
     public function content(): Content
     {
         return new Content(
-            view: 'email.user_delete',
+            view: 'email.boosting_reject',
         );
     }
 

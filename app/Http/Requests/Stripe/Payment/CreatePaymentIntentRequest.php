@@ -23,9 +23,8 @@ class CreatePaymentIntentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount'     => 'required|numeric|min:1',
+            'amount'     => 'required|numeric|min:800',
             'currency'   => 'required|string|size:3',
-            'product_id' => 'required|integer|exists:products,id',
         ];
     }
 
