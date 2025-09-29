@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('boost_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('provider_id')->nullable()->constrained('users')->cascadeOnDelete();
+            $table->foreignId('boost_request_id')->nullable()->constrained('boost_profile_requests')->cascadeOnDelete();
             $table->date('started_date');
             $table->date('ending_date');
             $table->unsignedBigInteger('total_click')->default(0);

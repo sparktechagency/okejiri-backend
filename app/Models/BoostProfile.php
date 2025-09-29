@@ -15,4 +15,8 @@ class BoostProfile extends Model
     {
         return $this->belongsTo(User::class, 'provider_id');
     }
+        public function boostingRequest()
+    {
+        return $this->belongsTo(BoostProfileRequest::class,'boost_request_id');
+    }
 }

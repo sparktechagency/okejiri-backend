@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
@@ -17,11 +16,13 @@ class BoostingRequestRejectMail extends Mailable implements ShouldQueue
      * Create a new message instance.
      */
 
- public $name,$reason;
-    public function __construct($name,$reason)
+    public $name, $reason, $type, $subject;
+    public function __construct($name, $reason, $type, $subject)
     {
-        $this->name=$name;
-        $this->reason=$reason;
+        $this->name    = $name;
+        $this->reason  = $reason;
+        $this->type    = $type;
+        $this->subject = $subject;
     }
 
     /**
@@ -30,7 +31,7 @@ class BoostingRequestRejectMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Boosting Request Rejection',
+            subject: $this->subject,
         );
     }
 

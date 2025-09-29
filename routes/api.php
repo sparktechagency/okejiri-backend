@@ -1,20 +1,20 @@
 <?php
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\PageController;
-use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\MessageController;
-use App\Http\Controllers\Api\ServiceController;
-use App\Http\Controllers\Api\SettingController;
-use App\Http\Controllers\Api\ProviderController;
-use App\Http\Controllers\BoostProfileController;
-use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\ProviderPortfolioController;
-use App\Http\Controllers\Api\Stripe\PaymentController;
+use App\Http\Controllers\Api\PageController;
+use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ProviderServiceController;
 use App\Http\Controllers\Api\ReferralManagementController;
+use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\Stripe\PaymentController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\BoostProfileController;
+use App\Http\Controllers\ProviderPortfolioController;
+use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'api'], function ($router) {
 
@@ -64,7 +64,7 @@ Route::group(['middleware' => 'api'], function ($router) {
 
         // User routes
         Route::middleware('user')->as('user')->group(function () {
-
+            Route::post('click', [BoostProfileController::class, 'increaseClick']);
         });
 
         // Admin routes
@@ -85,7 +85,6 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::delete('delete-users/{user_id}', [UserController::class, 'deleteUsers']);
             Route::get('user-details/{user_id}', [UserController::class, 'userDetails']);
 
-            Route::get('get-settings', [SettingController::class, 'getSettings']);
             Route::post('update-settings', [SettingController::class, 'updateSettings']);
             Route::apiResource('faqs', FaqController::class)->except('index');
             Route::apiResource('services', ServiceController::class)->except('index');
@@ -98,6 +97,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('get-boosting-profiles', [BoostProfileController::class, 'getBoostingProfiles']);
             Route::get('get-boosting-profiles/{id}', [BoostProfileController::class, 'getBoostingProfileDetails']);
             Route::post('toggle-boosting-status/{id}', [BoostProfileController::class, 'toggleBoostingStatus']);
+            Route::post('delete-boosting-profiles/{id}', [BoostProfileController::class, 'deleteBoostingProfiles']);
         });
 
         // user.provider routes
@@ -105,6 +105,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('switch-role', [AuthController::class, 'switchRole']);
             Route::get('my-referrals', [ReferralManagementController::class, 'myReferrals']);
 
+            Route::get('boost-my-profile', [BoostProfileController::class, 'getMyBoostMyProfile']);
             Route::post('boost-my-profile', [BoostProfileController::class, 'boostMyProfile']);
         });
 
@@ -122,25 +123,26 @@ Route::group(['middleware' => 'api'], function ($router) {
 
         // Stripe routes
         Route::prefix('stripe')->group(function () {
-        //     Route::prefix('connected')->group(function () {
-        //         Route::post('account-create', [ConnectController::class, 'createAccount']);
-        //         Route::post('account-link', [ConnectController::class, 'createAccountLink']);
-        //         Route::post('payment-intent', [ConnectController::class, 'createPaymentIntent']);
-        //         Route::post('payment-link', [ConnectController::class, 'createPaymentLink']);
-        //         Route::post('login-link', [ConnectController::class, 'createLoginLink']);
-        //         Route::get('balance', [ConnectController::class, 'getBalance']);
-        //         Route::post('payout-instant', [ConnectController::class, 'createInstantPayout']);
-        //     });
+            //     Route::prefix('connected')->group(function () {
+            //         Route::post('account-create', [ConnectController::class, 'createAccount']);
+            //         Route::post('account-link', [ConnectController::class, 'createAccountLink']);
+            //         Route::post('payment-intent', [ConnectController::class, 'createPaymentIntent']);
+            //         Route::post('payment-link', [ConnectController::class, 'createPaymentLink']);
+            //         Route::post('login-link', [ConnectController::class, 'createLoginLink']);
+            //         Route::get('balance', [ConnectController::class, 'getBalance']);
+            //         Route::post('payout-instant', [ConnectController::class, 'createInstantPayout']);
+            //     });
 
             Route::prefix('payment')->group(function () {
                 Route::post('payment-intent', [PaymentController::class, 'createPaymentIntent']);
             });
 
-        //     Route::prefix('subscription')->group(function () {
+            //     Route::prefix('subscription')->group(function () {
 
-        //     });
+            //     });
         });
     });
+    Route::get('get-settings', [SettingController::class, 'getSettings']);
     Route::get('pages', [PageController::class, 'getPage']);
     Route::apiResource('faqs', FaqController::class)->only('index');
     Route::apiResource('services', ServiceController::class)->only('index');

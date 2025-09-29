@@ -7,6 +7,7 @@ use App\Models\BoostProfile;
 use App\Models\BoostProfileRequest;
 use App\Models\User;
 use App\Traits\ApiResponse;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +42,53 @@ class BoostProfileController extends Controller
         return $this->responseSuccess($boost_profile,
             'Boost request submitted successfully.',
         );
+    }
+
+    public function getMyBoostMyProfile()
+    {
+        $get_boosted_data = BoostProfile::with('boostingRequest')->where('provider_id', Auth::id())
+            ->latest('id')
+            ->first();
+
+        $today = now()->startOfDay();
+        $data  = [];
+
+        if ($get_boosted_data) {
+            $endingDate = Carbon::parse($get_boosted_data->ending_date)->startOfDay();
+
+            if ($endingDate->lt($today)) {
+                $boosting_status = 'Expired';
+            } elseif ($get_boosted_data->is_boosting_pause == false) {
+                $boosting_status = 'Active';
+            } else {
+                $boosting_status = 'Pause';
+            }
+
+            $days_remaining = $endingDate->lt($today)
+                ? 0
+                : $today->diffInDays($endingDate);
+            $data = [
+                'id'               => $get_boosted_data->id,
+                'provider_id'      => $get_boosted_data->provider_id,
+                'boost_request_id' => $get_boosted_data->boost_request_id,
+                'started_date'     => $get_boosted_data->started_date,
+                'ending_date'      => $get_boosted_data->ending_date,
+                'total_click'      => $get_boosted_data->total_click,
+                'total_bookings'   => $get_boosted_data->total_bookings,
+                'boosting_status'  => $boosting_status,
+                'payment_amount'   => optional($get_boosted_data->boostingRequest)->payment_amount,
+                'number_of_days'   => optional($get_boosted_data->boostingRequest)->number_of_days,
+                'days_remaining'   => $days_remaining,
+                'created_at'       => $get_boosted_data->created_at,
+                'updated_at'       => $get_boosted_data->updated_at,
+            ];
+        } else {
+            $data = [
+                'boosting_status' => 'No Boosting Found',
+            ];
+        }
+
+        return $this->responseSuccess($data, 'Current Boosting details retrieved successfully');
     }
 
     public function getBoostingRequests(Request $request)
@@ -79,9 +127,10 @@ class BoostProfileController extends Controller
             $provider->save();
 
             $boost_profile = BoostProfile::create([
-                'provider_id'  => $boosting_request->provider_id,
-                'started_date' => now(),
-                'ending_date'  => now()->addDays($boosting_request->number_of_days),
+                'provider_id'      => $boosting_request->provider_id,
+                'boost_request_id' => $boosting_request->id,
+                'started_date'     => now(),
+                'ending_date'      => now()->addDays($boosting_request->number_of_days),
             ]);
 
             return $this->responseSuccess($boosting_request, 'Boosting request accepted successfully.');
@@ -119,8 +168,9 @@ class BoostProfileController extends Controller
             }
             $boosting_request->status = 'reject';
             $boosting_request->save();
-            $reason = $request->input('reason');
-            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason));
+            $reason  = $request->input('reason');
+            $subject = 'Boosting Request Rejected';
+            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'rejected', $subject));
             return $this->responseSuccess($boosting_request, 'Boosting request rejected successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -129,6 +179,7 @@ class BoostProfileController extends Controller
 
     public function getBoostingProfiles(Request $request)
     {
+        $today   = Carbon::now()->startOfDay();
         $perPage = $request->input('per_page', 20);
         $search  = $request->input('search');
 
@@ -139,7 +190,7 @@ class BoostProfileController extends Controller
                         ->orWhere('email', 'LIKE', '%' . $search . '%');
                 });
             });
-        })->latest('id')->paginate($perPage);
+        })->latest('id')->whereDate('ending_date', '>=', $today)->paginate($perPage);
         $metadata['request'] = BoostProfileRequest::where('status', 'pending')->count();
         return $this->responseSuccess($boosting_profiles, 'Boosting profiles retrieved successfully', 200, 'success', $metadata);
     }
@@ -166,6 +217,55 @@ class BoostProfileController extends Controller
             $boosting_profile,
             "Boosting profile has been {$status} successfully."
         );
+    }
+    public function deleteBoostingProfiles(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string',
+        ]);
+
+        try {
+            $boosting_profile     = BoostProfile::findOrFail($id);
+            $provider             = User::find($boosting_profile->provider_id);
+            $provider->is_boosted = false;
+            $provider->save();
+            $boosting_profile->delete();
+            $reason  = $request->input('reason');
+            $subject = ' Boosting Removed';
+            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'removed', $subject));
+            return $this->responseSuccess($boosting_profile, 'Boosting request deleted successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+
+    public function increaseClick(Request $request)
+    {
+        $request->validate([
+            'provider_id' => 'required|numeric',
+        ]);
+
+        $today = now()->startOfDay();
+
+        $boost = BoostProfile::where('provider_id', $request->provider_id)
+            ->latest('id')
+            ->first();
+
+        if (! $boost) {
+            return $this->responseError(null, 'Boosting not found', 400);
+        }
+        if (Carbon::parse($boost->ending_date)->lt($today)) {
+            return $this->responseError(null, 'Boosting has expired', 400);
+        }
+
+        if ($boost->is_boosting_pause == 1) {
+            return $this->responseError(null, 'Boosting is paused', 400);
+        }
+        $boost->total_click += 1;
+        $boost->save();
+
+        return $this->responseSuccess($boost, 'Click counted successfully');
+
     }
 
 }
