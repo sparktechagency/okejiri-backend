@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             ServiceRequestSeeder::class,
             ReferUserSeeder::class,
             ProviderPortfolioSeeder::class,
+            BookingSeeder::class,
         ]);
     }
 }

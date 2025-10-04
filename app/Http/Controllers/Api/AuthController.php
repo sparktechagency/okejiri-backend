@@ -50,8 +50,8 @@ class AuthController extends Controller
     {
         DB::beginTransaction();
         try {
-            $user_exists = User::where('email', $request->email)->first();
-
+            $user_exists   = User::where('email', $request->email)->first();
+            $walletAddress = '0x' . bin2hex(random_bytes(20));
             if ($user_exists && $user_exists->email_verified_at !== null) {
                 $meta_data = ['redirect_login' => true];
                 return $this->responseError(
@@ -98,6 +98,7 @@ class AuthController extends Controller
                 $user = $user_exists;
 
             } else {
+
                 $new_user                 = new User();
                 $new_user->name           = $request->name;
                 $new_user->email          = $request->email;
@@ -107,6 +108,7 @@ class AuthController extends Controller
                 $new_user->otp            = $otp;
                 $new_user->otp_expires_at = $otp_expires_at;
                 $new_user->status         = 'inactive';
+                $new_user->wallet_address = $walletAddress;
                 $new_user->referral_code  = rand(100000, 999999);
 
                 $new_user->avatar = $request->hasFile('photo')
@@ -218,6 +220,7 @@ class AuthController extends Controller
                     return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
                 }
             }
+            $walletAddress                         = '0x' . bin2hex(random_bytes(20));
             $new_user                              = new User();
             $new_user->name                        = $request->name;
             $new_user->email                       = $request->email;
@@ -226,6 +229,7 @@ class AuthController extends Controller
             $new_user->password                    = Hash::make(Str::random(16));
             $new_user->google_id                   = $request->google_id ?? null;
             $new_user->email_verified_at           = now();
+            $new_user->wallet_address              = $walletAddress;
             $new_user->status                      = 'active';
             $new_user->is_personalization_complete = false;
 

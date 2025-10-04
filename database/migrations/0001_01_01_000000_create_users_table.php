@@ -27,11 +27,12 @@ return new class extends Migration
             $table->string('referral_code')->nullable();
             $table->decimal('wallet_balance')->default(0);
             $table->decimal('referral_balance')->default(0);
+            $table->string('wallet_address')->unique();
             $table->string('id_card_front')->nullable();
             $table->string('id_card_back')->nullable();
             $table->string('selfie')->nullable();
             $table->enum('kyc_status', ['Unverified', 'In Review', 'Verified', 'Rejected'])
-            ->default('Unverified');
+                ->default('Unverified');
             $table->longText('about')->nullable();
             $table->boolean('has_service')->default(false);
             $table->boolean('is_personalization_complete')->default(false);

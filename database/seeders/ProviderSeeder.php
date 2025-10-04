@@ -23,6 +23,7 @@ class ProviderSeeder extends Seeder
             $id_card_front = $fileUpload->setPath('placeholders/users/kyc/id_card_front')->generatePlaceholderImage();
             $id_card_back  = $fileUpload->setPath('placeholders/users/kyc/id_card_back')->generatePlaceholderImage();
             $selfie        = $fileUpload->setPath('placeholders/users/kyc/selfie')->generatePlaceholderImage(512, 512);
+            $walletAddress = '0x' . bin2hex(random_bytes(20));
             PROVIDER::create([
                 'name'  => "System Provider $i",
                 'email' => "provider{$i}@gmail.com",
@@ -44,6 +45,7 @@ class ProviderSeeder extends Seeder
                 'has_service'=>true,
                 'discount'=>rand(0, 50),
                 'is_personalization_complete' => rand(0, 1),
+                'wallet_address'=> $walletAddress,
             ]);
         }
     }

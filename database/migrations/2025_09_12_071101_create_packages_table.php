@@ -19,6 +19,9 @@ return new class extends Migration
             $table->string('image');
             $table->decimal('price', 8, 2);
             $table->string('delivery_time');
+            $table->boolean('is_suspend')->default(false);
+            $table->string('suspend_reason')->nullable();
+            $table->date('suspend_until')->nullable();
             $table->timestamps();
         });
     }

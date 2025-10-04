@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('seven_day_boosting_price', 8, 2)->nullable();
             $table->decimal('fifteen_day_boosting_price', 8, 2)->nullable();
             $table->decimal('thirty_day_boosting_price', 8, 2)->nullable();
+            $table->decimal('profit', 8, 2)->nullable()->comment('in percent');
             $table->timestamps();
         });
     }

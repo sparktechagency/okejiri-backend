@@ -8,10 +8,12 @@ use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ProviderServiceController;
 use App\Http\Controllers\Api\ReferralManagementController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\Stripe\PaymentController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WalletManagementController;
 use App\Http\Controllers\BoostProfileController;
 use App\Http\Controllers\ProviderPortfolioController;
 use Illuminate\Support\Facades\Route;
@@ -65,6 +67,11 @@ Route::group(['middleware' => 'api'], function ($router) {
         // User routes
         Route::middleware('user')->as('user')->group(function () {
             Route::post('click', [BoostProfileController::class, 'increaseClick']);
+            Route::post('report-provider', [ReportController::class, 'reportProvider']);
+
+            Route::post('deposit-success', [WalletManagementController::class, 'depositSuccess']);
+            Route::post('transfer-balance', [WalletManagementController::class, 'transferBalance']);
+
         });
 
         // Admin routes
@@ -98,6 +105,11 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('get-boosting-profiles/{id}', [BoostProfileController::class, 'getBoostingProfileDetails']);
             Route::post('toggle-boosting-status/{id}', [BoostProfileController::class, 'toggleBoostingStatus']);
             Route::post('delete-boosting-profiles/{id}', [BoostProfileController::class, 'deleteBoostingProfiles']);
+
+            Route::get('get-reports', [ReportController::class, 'getReports']);
+            Route::get('get-report-detail/{report_id}', [ReportController::class, 'getReportDetail']);
+            Route::delete('delete-reports/{report_id}', [ReportController::class, 'deleteReports']);
+            Route::post('take-report-action/{report_id}', [ReportController::class, 'takeReportAction']);
         });
 
         // user.provider routes
@@ -107,6 +119,7 @@ Route::group(['middleware' => 'api'], function ($router) {
 
             Route::get('boost-my-profile', [BoostProfileController::class, 'getMyBoostMyProfile']);
             Route::post('boost-my-profile', [BoostProfileController::class, 'boostMyProfile']);
+            Route::get('my-transactions', [WalletManagementController::class, 'myTransactions']);
         });
 
         Route::middleware('admin.user.provider')->as('common')->group(function () {

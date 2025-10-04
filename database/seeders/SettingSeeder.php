@@ -18,6 +18,7 @@ class SettingSeeder extends Seeder
             'seven_day_boosting_price'     => 1600,
             'fifteen_day_boosting_price'   => 3200,
             'thirty_day_boosting_price'    => 5600,
+            'profit'    => 10, // in percent
         ]);
     }
 }
