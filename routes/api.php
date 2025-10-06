@@ -70,7 +70,6 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('report-provider', [ReportController::class, 'reportProvider']);
 
             Route::post('deposit-success', [WalletManagementController::class, 'depositSuccess']);
-            Route::post('transfer-balance', [WalletManagementController::class, 'transferBalance']);
 
         });
 
@@ -110,6 +109,13 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('get-report-detail/{report_id}', [ReportController::class, 'getReportDetail']);
             Route::delete('delete-reports/{report_id}', [ReportController::class, 'deleteReports']);
             Route::post('take-report-action/{report_id}', [ReportController::class, 'takeReportAction']);
+
+            Route::get('transactions', [WalletManagementController::class, 'transactions']);
+            Route::get('user-transactions/{user_id}', [WalletManagementController::class, 'userTransactions']);
+            Route::get('provider-transactions/{provider_id}', [WalletManagementController::class, 'providerTransactions']);
+
+            Route::get('referral-management', [ReferralManagementController::class, 'referralManagement']);
+            Route::get('referral-management/{refer_id}', [ReferralManagementController::class, 'referralManagementDetail']);
         });
 
         // user.provider routes
@@ -119,7 +125,9 @@ Route::group(['middleware' => 'api'], function ($router) {
 
             Route::get('boost-my-profile', [BoostProfileController::class, 'getMyBoostMyProfile']);
             Route::post('boost-my-profile', [BoostProfileController::class, 'boostMyProfile']);
+
             Route::get('my-transactions', [WalletManagementController::class, 'myTransactions']);
+            Route::post('transfer-balance', [WalletManagementController::class, 'transferBalance']);
         });
 
         Route::middleware('admin.user.provider')->as('common')->group(function () {

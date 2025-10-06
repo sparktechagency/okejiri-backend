@@ -31,7 +31,9 @@ class WalletManagementController extends Controller
         $sender   = Auth::user();
         $receiver = User::where('wallet_address', $request->wallet_address)->first();
         $amount   = $request->amount;
-
+        if ($sender->role === 'PROVIDER' && $request->account_type === 'wallet_balance') {
+            return $this->responseError(null, 'This account type is not allowed for transfer wallet balance.', 403);
+        }
         if (! $receiver) {
             return $this->responseError(null, 'Invalid wallet address.', 404);
         }
@@ -82,7 +84,7 @@ class WalletManagementController extends Controller
         $perPage = $request->input('per_page', 10);
         $userId  = auth()->id();
 
-        $transactions = Transaction::with(['sender:id,name,kyc_status','receiver:id,name,kyc_status', 'package:id,title'])
+        $transactions = Transaction::with(['sender:id,name,kyc_status', 'receiver:id,name,kyc_status', 'package:id,title'])
             ->where(function ($query) use ($userId) {
                 $query->where('sender_id', $userId)
                     ->orWhere('receiver_id', $userId);
@@ -108,4 +110,35 @@ class WalletManagementController extends Controller
         return $this->responseSuccess($transactions, 'My transactions retrieved successfully.');
     }
 
+    public function transactions(Request $request)
+    {
+        $per_page     = $request->input('per_page', 10);
+        $search       = $request->input('search');
+        $transactions = Transaction::with('sender:id,name,avatar,kyc_status', 'receiver:id,name,avatar,kyc_status')->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('sender', function ($senderQuery) use ($search) {
+                    $senderQuery->where('name', 'like', "%{$search}%");
+                })
+                    ->orWhereHas('receiver', function ($receiverQuery) use ($search) {
+                        $receiverQuery->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('transactions.transaction_id', 'like', "%{$search}%")
+                    ->orWhere('transactions.amount', 'like', "%{$search}%")
+                    ->orWhere('transactions.profit', 'like', "%{$search}%");
+            });
+        })->latest('id')->where('transaction_type', 'purchase')->paginate($per_page);
+        return $this->responseSuccess($transactions, 'Transactions retrieved successfully.');
+    }
+    public function userTransactions(Request $request, $user_id)
+    {
+        $per_page     = $request->input('per_page', 10);
+        $transactions = Transaction::with('receiver:id,name,avatar,kyc_status')->latest('id')->where('sender_id', $user_id)->paginate($per_page);
+        return $this->responseSuccess($transactions, 'User transactions retrieved successfully.');
+    }
+    public function providerTransactions(Request $request, $provider_id)
+    {
+        $per_page     = $request->input('per_page', 10);
+        $transactions = Transaction::with('sender:id,name,avatar,kyc_status')->latest('id')->where('receiver_id', $provider_id)->paginate($per_page);
+        return $this->responseSuccess($transactions, 'Provider transactions retrieved successfully.');
+    }
 }
