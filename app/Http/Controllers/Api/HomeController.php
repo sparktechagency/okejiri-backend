@@ -1,0 +1,251 @@
+<?php
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Favorite;
+use App\Models\Package;
+use App\Models\ProviderPortfolio;
+use App\Models\Rating;
+use App\Models\Service;
+use App\Models\User;
+use App\Traits\ApiResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class HomeController extends Controller
+{
+    use ApiResponse;
+    public function getPackages(Request $request, $service_id)
+    {
+        $per_page = $request->input('per_page', 10);
+
+        $packages = Package::with([
+            'service:id,name',
+            'provider' => function ($q) {
+                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')
+                    ->withCount('ratings')
+                    ->withAvg('ratings', 'rating');
+            },
+        ])
+            ->where('service_id', $service_id)
+            ->where('is_suspend', 0)
+            ->latest('id')
+            ->paginate($per_page);
+
+        $packages->getCollection()->transform(function ($package) {
+            if ($package->provider) {
+                $avg                                   = $package->provider->ratings_avg_rating;
+                $package->provider->ratings_avg_rating = number_format(
+                    $avg ?? 0,
+                    1,
+                    '.',
+                    ''
+                );
+            }
+
+            return $package;
+        });
+
+        return $this->responseSuccess($packages, 'Packages retrieved successfully');
+    }
+
+    public function getPackageDetail(Request $request, $package_id)
+    {
+        $package = Package::with('package_detail_items')->findOrFail($package_id);
+        $service = Service::findOrFail($package->service_id);
+
+        $user = Auth::user();
+        if (! $user || ! $user->latitude || ! $user->longitude) {
+            return $this->responseError('User location not available', 422);
+        }
+
+        $user_latitude  = $user->latitude;
+        $user_longitude = $user->longitude;
+
+        // Provider profile with ratings & count
+        $provider = User::select('id', 'name', 'avatar', 'kyc_status', 'latitude', 'longitude')
+            ->withAvg('ratings', 'rating')
+            ->withCount('ratings')
+            ->find($package->provider_id);
+
+        if ($provider) {
+            $provider->ratings_avg_rating = $provider->ratings_avg_rating !== null
+                ? number_format($provider->ratings_avg_rating, 1)
+                : number_format(0, 1);
+
+            $provider->ratings_count = $provider->ratings_count ?? 0;
+        }
+
+        // Distance calculate
+        $distanceText = null;
+        if (
+            $provider &&
+            ! empty($provider->latitude) && is_numeric($provider->latitude) &&
+            ! empty($provider->longitude) && is_numeric($provider->longitude)
+        ) {
+            $distanceInKm = $this->calculateDistance(
+                $user_latitude,
+                $user_longitude,
+                $provider->latitude,
+                $provider->longitude
+            );
+
+            $distanceText = $this->formatDistance($distanceInKm);
+        }
+
+        // Related packages
+        $otherPackages = Package::with('package_detail_items')
+            ->where('provider_id', $package->provider_id)
+            ->where('is_suspend', 0)
+            ->where('id', '!=', $package->id)
+            ->take(2)
+            ->get();
+
+        $packages = collect([$package])->merge($otherPackages);
+
+        // Reviews & Portfolio
+        $reviews    = Rating::with('user:id,name,email,avatar')->where('provider_id', $provider->id)->latest('id')->take(5)->get();
+        $portfolios = ProviderPortfolio::where('provider_id', $provider->id)->latest('id')->take(5)->get();
+
+        // More services from this provider
+        $more_services_from_this_provider = Package::with([
+            'service:id,name',
+            'provider' => function ($q) {
+                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')
+                    ->withCount('ratings')
+                    ->withAvg('ratings', 'rating');
+            },
+        ])
+            ->where('provider_id', $provider->id)
+            ->where('is_suspend', 0)
+            ->take(5)
+            ->inRandomOrder()
+            ->get();
+
+        // You might also like
+        $you_might_also_like = Package::with([
+            'service:id,name',
+            'provider' => function ($q) {
+                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')
+                    ->withCount('ratings')
+                    ->withAvg('ratings', 'rating');
+            },
+        ])
+            ->whereNot('provider_id', $provider->id)
+            ->where('is_suspend', 0)
+            ->take(5)
+            ->inRandomOrder()
+            ->get();
+
+        // Format provider ratings for these two collections
+        $more_services_from_this_provider = $more_services_from_this_provider->transform(function ($service) {
+            if ($service->provider) {
+                $service->provider->ratings_avg_rating = $service->provider->ratings_avg_rating !== null
+                    ? number_format($service->provider->ratings_avg_rating, 1)
+                    : number_format(0, 1);
+                $service->provider->ratings_count = $service->provider->ratings_count ?? 0;
+            }
+            return $service;
+        });
+
+        $you_might_also_like = $you_might_also_like->transform(function ($service) {
+            if ($service->provider) {
+                $service->provider->ratings_avg_rating = $service->provider->ratings_avg_rating !== null
+                    ? number_format($service->provider->ratings_avg_rating, 1)
+                    : number_format(0, 1);
+                $service->provider->ratings_count = $service->provider->ratings_count ?? 0;
+            }
+            return $service;
+        });
+
+        $data = [
+            'category_image'                   => $service->image,
+            'is_favorite'                      => $this->isFavourite($package_id),
+            'services'                         => $packages,
+            'distance'                         => $distanceText,
+            'provider_profile'                 => $provider,
+            'reviews'                          => $reviews,
+            'portfolio'                        => $portfolios,
+            'more_services_from_this_provider' => $more_services_from_this_provider,
+            'you_might_also_like'              => $you_might_also_like,
+        ];
+
+        return $this->responseSuccess($data, 'Package details retrieved successfully');
+    }
+
+    protected function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371;
+
+        $lat1 = deg2rad($lat1);
+        $lon1 = deg2rad($lon1);
+        $lat2 = deg2rad($lat2);
+        $lon2 = deg2rad($lon2);
+
+        $latDiff = $lat2 - $lat1;
+        $lonDiff = $lon2 - $lon1;
+
+        $a = sin($latDiff / 2) ** 2 +
+        cos($lat1) * cos($lat2) * sin($lonDiff / 2) ** 2;
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return round($earthRadius * $c, 2);
+    }
+
+    protected function formatDistance($distanceInKm)
+    {
+        if ($distanceInKm < 1) {
+            return round($distanceInKm * 1000) . ' m away';
+        } else {
+            return number_format($distanceInKm, 1) . ' km away';
+        }
+    }
+
+    public function isFavourite($package_id)
+    {
+        $userId = auth()->id();
+
+        return Favorite::where('user_id', $userId)
+            ->where('package_id', $package_id)
+            ->exists();
+    }
+
+    public function getProviderPortfolio(Request $request, $provider_id)
+    {
+        $per_page   = $request->input('per_page', 10);
+        $portfolios = ProviderPortfolio::where('provider_id', $provider_id)->paginate($per_page);
+        return $this->responseSuccess($portfolios, 'Portfolios retrieved successfully');
+    }
+
+    public function getProviderProfile(Request $request, $provider_id)
+    {
+        $profile = User::with([
+            'provider_services.service:id,name,image',
+            'company',
+        ])
+            ->withCount('ratings')
+            ->withAvg('ratings', 'rating')
+            ->where('id', $provider_id)
+            ->first();
+
+        if (! $profile) {
+            return $this->responseError(null, 'Provider not found', 404);
+        }
+
+        $profile->ratings_avg_rating = $profile->ratings_avg_rating !== null
+            ? number_format($profile->ratings_avg_rating, 1)
+            : number_format(0, 1);
+
+        $profile->ratings_count = $profile->ratings_count ?? 0;
+
+        return $this->responseSuccess($profile, 'Provider profile retrieved successfully');
+    }
+
+    public function getProviderReview(Request $request, $provider_id)
+    {
+        $reviews = Rating::with('user:id,name,email')->where('provider_id', $provider_id)->take(5)->latest('id')->get();
+        return $this->responseSuccess($reviews, 'Provider Ratings retrieved successfully');
+    }
+
+}

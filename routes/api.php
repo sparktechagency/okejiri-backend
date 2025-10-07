@@ -1,6 +1,8 @@
 <?php
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\Api\FavouriteController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
@@ -70,8 +72,19 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('click', [BoostProfileController::class, 'increaseClick']);
             Route::post('report-provider', [ReportController::class, 'reportProvider']);
 
+            Route::get('get-packages/{service_id}', [HomeController::class, 'getPackages']);
+            Route::get('get-package-detail/{package_id}', [HomeController::class, 'getPackageDetail']);
+
+            Route::get('get-provider-portfolio/{provider_id}', [HomeController::class, 'getProviderPortfolio']);
+            Route::get('get-provider-profile/{provider_id}', [HomeController::class, 'getProviderProfile']);
+            Route::get('get-provider-review/{provider_id}', [HomeController::class, 'getProviderReview']);
+
             Route::post('deposit-success', [WalletManagementController::class, 'depositSuccess']);
             Route::get('services-nearby', [ServiceNearbyController::class, 'servicesNearby']);
+
+            Route::get('/favorites', [FavouriteController::class, 'index']);
+            Route::post('/favorites', [FavouriteController::class, 'store']);
+            Route::delete('/favorites/{package_id}', [FavouriteController::class, 'destroy']);
 
         });
 
@@ -118,7 +131,7 @@ Route::group(['middleware' => 'api'], function ($router) {
 
             Route::get('referral-management', [ReferralManagementController::class, 'referralManagement']);
             Route::get('referral-management/{refer_id}', [ReferralManagementController::class, '
-            ', ]);
+            ']);
         });
 
         // user.provider routes

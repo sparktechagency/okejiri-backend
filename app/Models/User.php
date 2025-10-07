@@ -190,4 +190,10 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(ProviderService::class, 'provider_id');
     }
+ public function ratings()
+{
+    // return $this->hasMany(Rating::class, 'provider_id');
+       return $this->hasMany(Rating::class, 'provider_id', 'id');
+}
+
 }

@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             ReferUserSeeder::class,
             ProviderPortfolioSeeder::class,
             BookingSeeder::class,
+            RatingSeeder::class,
         ]);
     }
 }
