@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ProviderServiceController;
 use App\Http\Controllers\Api\ReferralManagementController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\ServiceNearbyController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\Stripe\PaymentController;
 use App\Http\Controllers\Api\UserController;
@@ -70,6 +71,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('report-provider', [ReportController::class, 'reportProvider']);
 
             Route::post('deposit-success', [WalletManagementController::class, 'depositSuccess']);
+            Route::get('services-nearby', [ServiceNearbyController::class, 'servicesNearby']);
 
         });
 
@@ -115,7 +117,8 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('provider-transactions/{provider_id}', [WalletManagementController::class, 'providerTransactions']);
 
             Route::get('referral-management', [ReferralManagementController::class, 'referralManagement']);
-            Route::get('referral-management/{refer_id}', [ReferralManagementController::class, 'referralManagementDetail']);
+            Route::get('referral-management/{refer_id}', [ReferralManagementController::class, '
+            ', ]);
         });
 
         // user.provider routes

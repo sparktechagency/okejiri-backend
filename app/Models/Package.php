@@ -48,4 +48,5 @@ class Package extends Model
     public function available_time(){
         return $this->hasMany(PackageAvailableTime::class);
     }
+    
 }
