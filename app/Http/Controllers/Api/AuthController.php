@@ -21,6 +21,7 @@ use App\Models\ReferUser;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\CompleteKYCNotification;
+use App\Notifications\NewRegistrationNotification;
 use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
 use Exception;
@@ -131,6 +132,36 @@ class AuthController extends Controller
                 $user = $new_user;
 
                 $user->notify(new CompleteKYCNotification());
+
+                $newUserRole = Str::lower($user->role);
+                $admins      = User::where('role', 'admin')->get();
+
+                foreach ($admins as $admin) {
+                    $existingNotification = $admin->unreadNotifications()
+                        ->where('type', NewRegistrationNotification::class)
+                        ->where('data->type', $newUserRole)
+                        ->first();
+
+                    if ($existingNotification) {
+                        $data = $existingNotification->data;
+                        $data['count'] += 1;
+
+                        if ($data['count'] > 9) {
+                            $data['title'] = "9+ new {$newUserRole}s registered.";
+                        } else {
+                            $data['title'] = "{$data['count']} new {$newUserRole} registered.";
+                        }
+
+                        $existingNotification->update([
+                            'data' => $data,
+                        ]);
+                    } else {
+                        $count   = 1;
+                        $message = "{$count} new {$newUserRole} registered.";
+                        $admin->notify(new NewRegistrationNotification($count, $message, $newUserRole));
+                    }
+                }
+
             }
 
             $this->sendMail($user->email, $otp, 'register');
@@ -239,6 +270,35 @@ class AuthController extends Controller
 
             $new_user->save();
             $new_user->notify(new CompleteKYCNotification());
+
+            $newUserRole = Str::lower($new_user->role);
+            $admins      = User::where('role', 'admin')->get();
+
+            foreach ($admins as $admin) {
+                $existingNotification = $admin->unreadNotifications()
+                    ->where('type', NewRegistrationNotification::class)
+                    ->where('data->type', $newUserRole)
+                    ->first();
+
+                if ($existingNotification) {
+                    $data = $existingNotification->data;
+                    $data['count'] += 1;
+
+                    if ($data['count'] > 9) {
+                        $data['title'] = "9+ new {$newUserRole}s registered.";
+                    } else {
+                        $data['title'] = "{$data['count']} new {$newUserRole} registered.";
+                    }
+
+                    $existingNotification->update([
+                        'data' => $data,
+                    ]);
+                } else {
+                    $count   = 1;
+                    $message = "{$count} new {$newUserRole} registered.";
+                    $admin->notify(new NewRegistrationNotification($count, $message, $newUserRole));
+                }
+            }
 
             $responseWithToken = $this->generateTokenResponse($new_user);
             return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');

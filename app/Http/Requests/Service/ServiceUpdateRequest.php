@@ -24,7 +24,7 @@ class ServiceUpdateRequest extends FormRequest
     {
         return [
             'name'  => 'required|string|max:50|unique:services,name,' . $this->route('service'),
-            'image' => 'sometimes|image|mimes:png,jpg,jpeg|max:2048',
+            'image' => 'sometimes|image|mimes:png,jpg,jpeg|max:10240',
         ];
     }
 

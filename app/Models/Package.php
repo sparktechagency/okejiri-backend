@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +10,11 @@ class Package extends Model
     public function getImageAttribute($file)
     {
         $useStoragePrefix = false;
-        $prefix = $useStoragePrefix ? 'storage/' : '';
+        $prefix           = $useStoragePrefix ? 'storage/' : '';
 
         $isJson = fn($string) => is_string($string)
-            && str_starts_with(trim($string), '[')
-            && str_ends_with(trim($string), ']');
+        && str_starts_with(trim($string), '[')
+        && str_ends_with(trim($string), ']');
 
         $buildUrl = function ($f) use ($prefix) {
             $path = $prefix . ltrim($f, '/');
@@ -36,17 +35,25 @@ class Package extends Model
         return null;
     }
 
-    public function service(){
+    public function service()
+    {
         return $this->belongsTo(Service::class);
     }
-    public function provider(){
-        return $this->belongsTo(User::class,'provider_id');
+    public function provider()
+    {
+        return $this->belongsTo(User::class, 'provider_id');
     }
-    public function package_detail_items(){
+    public function package_detail_items()
+    {
         return $this->hasMany(PackageDetail::class);
     }
-    public function available_time(){
+    public function available_time()
+    {
         return $this->hasMany(PackageAvailableTime::class);
     }
-    
+    public function package_ratings()
+    {
+        return $this->hasMany(Rating::class, 'package_id');
+    }
+
 }

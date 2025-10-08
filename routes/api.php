@@ -78,6 +78,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('get-provider-portfolio/{provider_id}', [HomeController::class, 'getProviderPortfolio']);
             Route::get('get-provider-profile/{provider_id}', [HomeController::class, 'getProviderProfile']);
             Route::get('get-provider-review/{provider_id}', [HomeController::class, 'getProviderReview']);
+            Route::get('get-provider-services/{provider_id}', [HomeController::class, 'getProviderServices']);
 
             Route::post('deposit-success', [WalletManagementController::class, 'depositSuccess']);
             Route::get('services-nearby', [ServiceNearbyController::class, 'servicesNearby']);

@@ -22,26 +22,24 @@ class HomeController extends Controller
         $packages = Package::with([
             'service:id,name',
             'provider' => function ($q) {
-                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')
-                    ->withCount('ratings')
-                    ->withAvg('ratings', 'rating');
+                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status');
             },
         ])
             ->where('service_id', $service_id)
             ->where('is_suspend', 0)
             ->latest('id')
+            ->withCount('package_ratings')
+            ->withAvg('package_ratings', 'rating')
             ->paginate($per_page);
 
         $packages->getCollection()->transform(function ($package) {
-            if ($package->provider) {
-                $avg                                   = $package->provider->ratings_avg_rating;
-                $package->provider->ratings_avg_rating = number_format(
-                    $avg ?? 0,
-                    1,
-                    '.',
-                    ''
-                );
-            }
+            $avg                                 = $package->package_ratings_avg_rating;
+            $package->package_ratings_avg_rating = number_format(
+                $avg ?? 0,
+                1,
+                '.',
+                ''
+            );
 
             return $package;
         });
@@ -112,12 +110,13 @@ class HomeController extends Controller
             'service:id,name',
             'provider' => function ($q) {
                 $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')
-                    ->withCount('ratings')
-                    ->withAvg('ratings', 'rating');
+                ;
             },
         ])
             ->where('provider_id', $provider->id)
             ->where('is_suspend', 0)
+            ->withCount('package_ratings')
+            ->withAvg('package_ratings', 'rating')
             ->take(5)
             ->inRandomOrder()
             ->get();
@@ -127,34 +126,33 @@ class HomeController extends Controller
             'service:id,name',
             'provider' => function ($q) {
                 $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')
-                    ->withCount('ratings')
-                    ->withAvg('ratings', 'rating');
+                ;
             },
         ])
             ->whereNot('provider_id', $provider->id)
             ->where('is_suspend', 0)
             ->take(5)
+            ->withCount('package_ratings')
+            ->withAvg('package_ratings', 'rating')
             ->inRandomOrder()
             ->get();
 
         // Format provider ratings for these two collections
         $more_services_from_this_provider = $more_services_from_this_provider->transform(function ($service) {
-            if ($service->provider) {
-                $service->provider->ratings_avg_rating = $service->provider->ratings_avg_rating !== null
-                    ? number_format($service->provider->ratings_avg_rating, 1)
-                    : number_format(0, 1);
-                $service->provider->ratings_count = $service->provider->ratings_count ?? 0;
-            }
+
+            $service->package_ratings_avg_rating = $service->package_ratings_avg_rating !== null
+                ? number_format($service->package_ratings_avg_rating, 1)
+                : number_format(0, 1);
+            $service->package_ratings_count = $service->package_ratings_count ?? 0;
             return $service;
         });
 
         $you_might_also_like = $you_might_also_like->transform(function ($service) {
-            if ($service->provider) {
-                $service->provider->ratings_avg_rating = $service->provider->ratings_avg_rating !== null
-                    ? number_format($service->provider->ratings_avg_rating, 1)
-                    : number_format(0, 1);
-                $service->provider->ratings_count = $service->provider->ratings_count ?? 0;
-            }
+
+            $service->package_ratings_avg_rating = $service->package_ratings_avg_rating !== null
+                ? number_format($service->package_ratings_avg_rating, 1)
+                : number_format(0, 1);
+            $service->package_ratings_count = $service->package_ratings_count ?? 0;
             return $service;
         });
 
@@ -245,7 +243,34 @@ class HomeController extends Controller
     public function getProviderReview(Request $request, $provider_id)
     {
         $reviews = Rating::with('user:id,name,email')->where('provider_id', $provider_id)->take(5)->latest('id')->get();
-        return $this->responseSuccess($reviews, 'Provider Ratings retrieved successfully');
+        return $this->responseSuccess($reviews, 'Provider ratings retrieved successfully');
+    }
+    public function getProviderServices(Request $request, $provider_id)
+    {
+
+        $packages = Package::with([
+            'service:id,name',
+            'provider' => function ($q) {
+                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')
+                ;
+            },
+        ])
+            ->where('provider_id', $provider_id)
+            ->where('is_suspend', 0)
+            ->withCount('package_ratings')
+            ->withAvg('package_ratings', 'rating')
+            ->get();
+                    $packages = $packages->transform(function ($service) {
+
+            $service->package_ratings_avg_rating = $service->package_ratings_avg_rating !== null
+                ? number_format($service->package_ratings_avg_rating, 1)
+                : number_format(0, 1);
+            $service->package_ratings_count = $service->package_ratings_count ?? 0;
+            return $service;
+        });
+        return $this->responseSuccess($packages, 'Provider package retrieved successfully');
     }
 
 }
+
+

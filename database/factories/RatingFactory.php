@@ -23,6 +23,7 @@ class RatingFactory extends Factory
             'user_id'     => $user->id,
             'booking_id'  => $booking->id,
             'provider_id' => $booking->provider->id,
+            'package_id' => $booking->package_id,
             'rating'      => $this->faker->numberBetween(1, 5),
             'review'      => $this->faker->optional()->sentence(),
         ];

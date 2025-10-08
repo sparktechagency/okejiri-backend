@@ -8,6 +8,7 @@ use App\Models\Package;
 use App\Models\Report;
 use App\Models\ReportAttachment;
 use App\Models\User;
+use App\Notifications\NewReportNotification;
 use App\Notifications\ReportWarningNotification;
 use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
@@ -53,6 +54,11 @@ class ReportController extends Controller
                 }
             }
             DB::commit();
+            $admins = User::where('role', 'admin')->get();
+
+            foreach ($admins as $admin) {
+                $admin->notify(new NewReportNotification($report->id));
+            }
             return $this->responseSuccess($report, 'Report has been submitted successfully!', 201);
         } catch (Exception $e) {
             DB::rollBack();
