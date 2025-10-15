@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('add_to_carts', function (Blueprint $table) {
+        Schema::create('extend_delivery_times', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('package_id')->constrained('packages')->onDelete('cascade');
+            $table->foreignId('booking_id')->constrained('bookings')->cascadeOnDelete();
+            $table->string('time');
+            $table->text('reason')->nullable();
+            $table->enum('status', ['Pending', 'Accept', 'Decline'])->default('Pending');
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('add_to_carts');
+        Schema::dropIfExists('extend_delivery_times');
     }
 };

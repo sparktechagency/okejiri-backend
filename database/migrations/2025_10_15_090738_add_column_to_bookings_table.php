@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('add_to_carts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('package_id')->constrained('packages')->onDelete('cascade');
-            $table->timestamps();
+        Schema::table('bookings', function (Blueprint $table) {
+                $table->string('total_delivery_time')->after('order_id')->nullable();
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('add_to_carts');
+        Schema::table('bookings', function (Blueprint $table) {
+            $table->dropColumn('total_delivery_time');
+        });
     }
 };

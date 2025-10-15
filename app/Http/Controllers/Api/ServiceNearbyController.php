@@ -22,11 +22,11 @@ class ServiceNearbyController extends Controller
         $packages = Package::with([
             'service:id,name',
             'provider' => function ($q) {
-                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status');
+                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')->withAvg('ratings', 'rating');
             },
         ])
-        ->withAvg('package_ratings', 'rating')
-        ->where('is_suspend',0)
+        // ->withAvg('package_ratings', 'rating')
+            ->where('is_suspend', 0)
             ->get()
             ->map(function ($package) use ($latitude, $longitude) {
                 if ($package->provider && $package->provider->latitude && $package->provider->longitude) {
@@ -48,11 +48,17 @@ class ServiceNearbyController extends Controller
                     $package->distance      = null;
                     $package->distance_text = null;
                 }
-                    $avg                                   = $package->package_ratings_avg_rating;
-                    $package->package_ratings_avg_rating = $avg
+                // $avg                                 = $package->package_ratings_avg_rating;
+                // $package->package_ratings_avg_rating = $avg
+                //     ? number_format($avg, 1)
+                //     : number_format(0, 1);
+
+                if ($package->provider) {
+                    $avg                                   = $package->provider->ratings_avg_rating;
+                    $package->provider->ratings_avg_rating = $avg
                         ? number_format($avg, 1)
                         : number_format(0, 1);
-
+                }
                 return $package;
             })
             ->filter(fn($p) => $p->distance !== null && $p->distance <= $radius)

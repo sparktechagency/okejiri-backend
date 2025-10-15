@@ -14,110 +14,85 @@ use Illuminate\Support\Facades\Auth;
 class HomeController extends Controller
 {
     use ApiResponse;
-    // public function getPackages(Request $request, $service_id)
-    // {
-    //     $per_page = $request->input('per_page', 10);
 
-    //     $packages = Package::with([
-    //         'service:id,name',
-    //         'provider' => function ($q) {
-    //             $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status');
-    //         },
-    //     ])
-    //         ->where('service_id', $service_id)
-    //         ->where('is_suspend', 0)
-    //         ->latest('id')
-    //         ->withCount('package_ratings')
-    //         ->withAvg('package_ratings', 'rating')
-    //         ->paginate($per_page);
+    public function getPackages(Request $request, $service_id)
+    {
+        $per_page        = $request->input('per_page', 10);
+        $boostedPackages = Package::with([
+            'service:id,name',
+            'provider' => function ($q) {
+                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status', 'is_boosted')->withAvg('ratings', 'rating');
+            },
+        ])
+            ->where('service_id', $service_id)
+            ->where('is_suspend', 0)
+            ->whereHas('provider', function ($q) {
+                $q->where('is_boosted', 1);
+            })
+            ->latest('id')
+        // ->withCount('package_ratings')
+        // ->withAvg('package_ratings', 'rating')
+            ->take(4)
+            ->get()
+            ->transform(function ($package) {
+                // $avg = $package->package_ratings_avg_rating;
+                // $package->package_ratings_avg_rating = number_format($avg ?? 0, 1, '.', '');
+                if ($package->provider) {
+                    $avg                                   = $package->provider->ratings_avg_rating;
+                    $package->provider->ratings_avg_rating = $avg
+                        ? number_format($avg, 1)
+                        : number_format(0, 1);
+                }
+                return $package;
+            });
 
-    //     $packages->getCollection()->transform(function ($package) {
-    //         $avg                                 = $package->package_ratings_avg_rating;
-    //         $package->package_ratings_avg_rating = number_format(
-    //             $avg ?? 0,
-    //             1,
-    //             '.',
-    //             ''
-    //         );
-
-    //         return $package;
-    //     });
-
-    //     return $this->responseSuccess($packages, 'Packages retrieved successfully');
-    // }
-
-
-  public function getPackages(Request $request, $service_id)
-{
-    $per_page = $request->input('per_page', 10);
-
-    // 🟡 Boosted provider-এর প্রথম 4টা প্যাকেজ আনছি
-    $boostedPackages = Package::with([
+        $normalPackages = Package::with([
             'service:id,name',
             'provider' => function ($q) {
                 $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status', 'is_boosted');
             },
         ])
-        ->where('service_id', $service_id)
-        ->where('is_suspend', 0)
-        ->whereHas('provider', function ($q) {
-            $q->where('is_boosted', 1);
-        })
-        ->latest('id')
-        ->withCount('package_ratings')
-        ->withAvg('package_ratings', 'rating')
-        ->take(4)
-        ->get()
-        ->transform(function ($package) {
-            $avg = $package->package_ratings_avg_rating;
-            $package->package_ratings_avg_rating = number_format($avg ?? 0, 1, '.', '');
+            ->where('service_id', $service_id)
+            ->where('is_suspend', 0)
+            ->whereHas('provider', function ($q) {
+                $q->where('is_boosted', 0);
+            })
+            ->latest('id')
+        // ->withCount('package_ratings')
+        // ->withAvg('package_ratings', 'rating')
+            ->paginate($per_page);
+
+        $normalPackages->getCollection()->transform(function ($package) {
+            // $avg                                 = $package->package_ratings_avg_rating;
+            // $package->package_ratings_avg_rating = number_format($avg ?? 0, 1, '.', '');
+
+            if ($package->provider) {
+                $avg                                   = $package->provider->ratings_avg_rating;
+                $package->provider->ratings_avg_rating = $avg
+                    ? number_format($avg, 1)
+                    : number_format(0, 1);
+            }
             return $package;
         });
 
-    // 🟢 Normal provider-এর প্যাকেজগুলো pagination সহ আনছি
-    $normalPackages = Package::with([
-            'service:id,name',
-            'provider' => function ($q) {
-                $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status', 'is_boosted');
-            },
-        ])
-        ->where('service_id', $service_id)
-        ->where('is_suspend', 0)
-        ->whereHas('provider', function ($q) {
-            $q->where('is_boosted', 0);
-        })
-        ->latest('id')
-        ->withCount('package_ratings')
-        ->withAvg('package_ratings', 'rating')
-        ->paginate($per_page);
+        $mergedPackages = collect($boostedPackages)
+            ->merge($normalPackages->items())
+            ->values();
 
-    $normalPackages->getCollection()->transform(function ($package) {
-        $avg = $package->package_ratings_avg_rating;
-        $package->package_ratings_avg_rating = number_format($avg ?? 0, 1, '.', '');
-        return $package;
-    });
-
-    // 🧠 Boosted + Normal merge করছি
-    $mergedPackages = collect($boostedPackages)
-        ->merge($normalPackages->items())
-        ->values();
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Packages retrieved successfully',
-        'data' => [
-            'packages' => $mergedPackages,
-            'pagination' => [
-                'current_page' => $normalPackages->currentPage(),
-                'last_page'    => $normalPackages->lastPage(),
-                'per_page'     => $normalPackages->perPage(),
-                'total'        => $normalPackages->total(),
-            ]
-        ]
-    ]);
-}
-
-
+        return response()->json([
+            'success' => true,
+            'message' => 'Packages retrieved successfully',
+            'data'    => [
+                'packages'   => $mergedPackages,
+                'pagination' => [
+                    'current_page' => $normalPackages->currentPage(),
+                    'last_page'    => $normalPackages->lastPage(),
+                    'per_page'     => $normalPackages->perPage(),
+                    'total'        => $normalPackages->total(),
+                ],
+            ],
+        ]);
+    }
 
     public function getPackageDetail(Request $request, $package_id)
     {
@@ -171,26 +146,26 @@ class HomeController extends Controller
         // // More services from this provider
         $more_services_from_this_provider = Package::with('package_detail_items')->where('provider_id', $package->provider->id)
             ->where('is_suspend', 0)
-            // ->withCount('package_ratings')
-            // ->withAvg('package_ratings', 'rating')
+        // ->withCount('package_ratings')
+        // ->withAvg('package_ratings', 'rating')
             ->take(5)
             ->inRandomOrder()
             ->get();
 
         // You might also like
-        $you_might_also_like = Package
-            ::with([
-                'service:id,name',
-                'provider' => function ($q) {
-                    $q->select('id', 'name', 'kyc_status')
-                    ;
-                },
-            ])
+        $you_might_also_like = Package::with([
+            'service:id,name',
+            'provider' => function ($q) {
+                $q->select('id', 'name', 'kyc_status')
+                    ->withAvg('ratings', 'rating');
+                ;
+            },
+        ])
             ->whereNot('provider_id', $package->provider->id)
             ->where('is_suspend', 0)
             ->take(5)
-            ->withCount('package_ratings')
-            ->withAvg('package_ratings', 'rating')
+        // ->withCount('package_ratings')
+        // ->withAvg('package_ratings', 'rating')
             ->inRandomOrder()
             ->get();
 
@@ -205,10 +180,16 @@ class HomeController extends Controller
 
         $you_might_also_like = $you_might_also_like->transform(function ($service) {
 
-            $service->package_ratings_avg_rating = $service->package_ratings_avg_rating !== null
-                ? number_format($service->package_ratings_avg_rating, 1)
-                : number_format(0, 1);
-            $service->package_ratings_count = $service->package_ratings_count ?? 0;
+            // $service->package_ratings_avg_rating = $service->package_ratings_avg_rating !== null
+            //     ? number_format($service->package_ratings_avg_rating, 1)
+            //     : number_format(0, 1);
+            // $service->package_ratings_count = $service->package_ratings_count ?? 0;
+            if ($service->provider) {
+                $avg                                   = $service->provider->ratings_avg_rating;
+                $service->provider->ratings_avg_rating = $avg
+                    ? number_format($avg, 1)
+                    : number_format(0, 1);
+            }
             return $service;
         });
 
@@ -306,20 +287,20 @@ class HomeController extends Controller
             'service:id,name',
             'provider' => function ($q) {
                 $q->select('id', 'name', 'latitude', 'longitude', 'kyc_status')
+                    ->withAvg('ratings', 'rating');
                 ;
             },
         ])
             ->where('provider_id', $provider_id)
             ->where('is_suspend', 0)
-            ->withCount('package_ratings')
-            ->withAvg('package_ratings', 'rating')
+            // ->withCount('package_ratings')
+            // ->withAvg('package_ratings', 'rating')
             ->get();
         $packages = $packages->transform(function ($service) {
 
-            $service->package_ratings_avg_rating = $service->package_ratings_avg_rating !== null
-                ? number_format($service->package_ratings_avg_rating, 1)
+            $service->provider->ratings_avg_rating = $service->provider->ratings_avg_rating !== null
+                ? number_format($service->provider->ratings_avg_rating, 1)
                 : number_format(0, 1);
-            $service->package_ratings_count = $service->package_ratings_count ?? 0;
             return $service;
         });
         return $this->responseSuccess($packages, 'Provider package retrieved successfully');

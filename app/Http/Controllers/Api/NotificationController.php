@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ExtendDeliveryTime;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
@@ -59,6 +60,15 @@ class NotificationController extends Controller
             return $this->responseSuccess(null, 'All notifications marked as read successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage(), 'An error occurred while marking notifications.', 500);
+        }
+    }
+
+    public function deliveryTimeExtensionDetails($request_id){
+        try {
+            $request_details=ExtendDeliveryTime::findOrFail($request_id);
+            return $this->responseSuccess($request_details,'Request details retrieved successfully');
+ } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
         }
     }
 }

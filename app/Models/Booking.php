@@ -18,4 +18,22 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class, 'provider_id');
     }
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function booking_items()
+    {
+        return $this->hasMany(BookingItem::class, 'booking_id', 'id');
+    }
+    public function billing()
+    {
+        return $this->hasOne(BillingDetail::class);
+    }
+    public function review()
+    {
+        return $this->hasOne(Rating::class);
+    }
+
 }

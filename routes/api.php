@@ -1,5 +1,8 @@
 <?php
+
+use App\Http\Controllers\Api\AddToCartController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\FavouriteController;
 use App\Http\Controllers\Api\HomeController;
@@ -9,6 +12,7 @@ use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ProviderServiceController;
+use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\ReferralManagementController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ServiceController;
@@ -48,6 +52,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::get('notifications', [NotificationController::class, 'notifications']);
         Route::post('mark-notification/{id}', [NotificationController::class, 'singleMark']);
         Route::post('mark-all-notification', [NotificationController::class, 'allMark']);
+        Route::get('delivery-time-extension_details/{request_id}', [NotificationController::class, 'deliveryTimeExtensionDetails']);
 
         // Provider routes
         Route::middleware('provider')->as('provider')->group(function () {
@@ -65,6 +70,10 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::delete('delete-service-package-detail-item/{package_id}', [ProviderServiceController::class, 'deleteServicePackageItem']);
             Route::post('add-service-available-time', [ProviderServiceController::class, 'addServiceAvailableTime']);
             Route::put('update-service-available-time/{package_id}', [ProviderServiceController::class, 'updateServiceAvailableTime']);
+
+            Route::get('get-provider-orders', [BookingController::class, 'getProviderOrders']);
+            Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
+            Route::post('request-extend-delivery-time', [BookingController::class, 'requestExtendDeliveryTime']);
         });
 
         // User routes
@@ -86,6 +95,17 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('/favorites', [FavouriteController::class, 'index']);
             Route::post('/favorites', [FavouriteController::class, 'store']);
             Route::delete('/favorites/{package_id}', [FavouriteController::class, 'destroy']);
+
+            Route::get('/get-cart-items', [AddToCartController::class, 'index']);
+            Route::post('/store-delete-cart-item', [AddToCartController::class, 'storeOrDelete']);
+            Route::delete('/delete-cart-items', [AddToCartController::class, 'deleteAllCartItem']);
+
+            Route::get('/get-provider-discount', [BookingController::class, 'getProviderDiscount']);
+            Route::post('/booking', [BookingController::class, 'create']);
+
+            Route::post('/rating', [RatingController::class, 'create']);
+            Route::post('/delivery-time-extension/accept/{request_id}', [BookingController::class, 'acceptExtendDeliveryTime']);
+            Route::post('/delivery-time-extension/decline/{request_id}', [BookingController::class, 'declineExtendDeliveryTime']);
 
         });
 
@@ -132,7 +152,7 @@ Route::group(['middleware' => 'api'], function ($router) {
 
             Route::get('referral-management', [ReferralManagementController::class, 'referralManagement']);
             Route::get('referral-management/{refer_id}', [ReferralManagementController::class, '
-            ']);
+            ', ]);
         });
 
         // user.provider routes
