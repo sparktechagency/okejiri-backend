@@ -15,12 +15,19 @@ use App\Models\User;
 use App\Notifications\ExtendDeliveryTimeAcceptNotification;
 use App\Notifications\ExtendDeliveryTimeDeclineNotification;
 use App\Notifications\ExtendDeliveryTimeNotification;
+use App\Notifications\NewOrderNotification;
+use App\Notifications\OrderApprovedNotification;
+use App\Notifications\OrderRejectNotification;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Stripe\PaymentIntent;
+use Stripe\Refund;
+use Stripe\Stripe;
+
 
 class BookingController extends Controller
 {
@@ -69,6 +76,7 @@ class BookingController extends Controller
                 'schedule_time_slot' => $request->schedule_time_slot,
                 'price'              => $request->price,
                 'number_of_people'   => $request->number_of_people,
+                'payment_type'  => $request->payment_type,
                 'payment_intent_id'  => $request->payment_intent_id,
                 'order_id'           => 'ORD-' . Str::upper(Str::random(10)),
                 'status'             => 'New',
@@ -98,8 +106,10 @@ class BookingController extends Controller
                 ]);
                 $item->delete();
             }
-
+            $provider = User::findOrFail($request->provider_id);
+            $user     = Auth::user()->only(['id', 'name', 'kyc_status']);
             DB::commit();
+            $provider->notify(new NewOrderNotification($user, $booking->price, $booking->id));
             return $this->responseSuccess($booking, 'Booking completed successfully');
 
         } catch (Exception $e) {
@@ -193,4 +203,53 @@ class BookingController extends Controller
         return $this->responseSuccess($extendRequest, 'Delivery time extension request declined.');
     }
 
+    public function orderApprove($booking_id)
+    {
+        try {
+            $booking         = Booking::findOrFail($booking_id);
+            $booking->status = 'Pending';
+            $booking->save();
+
+            $provider = User::findOrFail($booking->provider_id)->only(['id', 'name', 'kyc_status']);
+            $user     = User::findOrFail($booking->user_id);
+            $user->notify(new OrderApprovedNotification($provider, $booking->id));
+            return $this->responseSuccess($booking, 'Order approved successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+
+    public function orderReject($booking_id)
+    {
+        try {
+             $booking = Booking::with('transaction')->findOrFail($booking_id);
+            $user           = User::findOrFail($booking->user_id);
+            if ($booking->payment_type == 'from_balance') {
+                $user->wallet_balance += $booking->price;
+                $user->save();
+            } elseif ($booking->payment_type == 'make_payment') {
+                Stripe::setApiKey(config('services.stripe.secret'));
+
+                $intent   = PaymentIntent::retrieve($booking->payment_intent_id);
+                $chargeId = $intent->latest_charge;
+
+                if (! $chargeId) {
+                    return $this->responseError(null, 'Could not find any charge information for this payment.');
+                }
+                $refund = Refund::create([
+                    'charge' => $chargeId,
+                ]);
+                if ($booking->transaction) {
+                    $booking->transaction->delete();
+                }
+            }
+            $booking->status = 'Reject';
+            $booking->save();
+            $provider = User::findOrFail($booking->provider_id)->only(['id', 'name', 'kyc_status']);
+            $user->notify(new OrderRejectNotification($provider, $booking->id));
+            return $this->responseSuccess($booking, 'Order rejected successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
 }

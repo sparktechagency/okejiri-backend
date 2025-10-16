@@ -35,5 +35,9 @@ class Booking extends Model
     {
         return $this->hasOne(Rating::class);
     }
+    public function transaction()
+    {
+        return $this->hasOne( Transaction::class);
+    }
 
 }

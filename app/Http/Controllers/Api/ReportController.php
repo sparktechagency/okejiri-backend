@@ -126,56 +126,71 @@ class ReportController extends Controller
     public function takeReportAction(ReportActionRequest $request, $report_id)
     {
         try {
-            $report   = Report::with('booking.package:id,title')->findOrFail($report_id);
-            $package  = Package::findOrFail($report->booking->package->id);
-            $provider = User::findOrFail($report->provider_id);
-            $type     = 'report';
+            $report     = Report::with('booking.package:id,title', 'booking.booking_items')->findOrFail($report_id);
+            $packageIds = $report->booking->booking_items->pluck('package_id')->toArray();
+            $packages   = Package::whereIn('id', $packageIds)->get();
+            $provider   = User::findOrFail($report->provider_id);
+            $type       = 'report';
 
+            // 🔸 Notification Title set করা হচ্ছে
             if ($request->action_name == 'Give a warning') {
                 $title = "Warning Regarding Your Service.";
             } elseif ($request->action_name == 'Suspend for 3 days') {
-                $title                   = 'Your Service Has Been Temporarily Suspended for 3 Days';
-                $package->is_suspend     = true;
-                $package->suspend_reason = 'Suspend for 3 days';
-                $package->suspend_until  = now()->addDays(3);
+                $title = 'Your Service Has Been Temporarily Suspended for 3 Days';
             } elseif ($request->action_name == 'Suspend for 7 days') {
-                $title                   = 'Your Service Has Been Temporarily Suspended for 7 Days.';
-                $package->is_suspend     = true;
-                $package->suspend_reason = 'Suspend for 7 days';
-                $package->suspend_until  = now()->addDays(7);
-
+                $title = 'Your Service Has Been Temporarily Suspended for 7 Days.';
             } elseif ($request->action_name == 'Suspend for 15 days') {
-                $title                   = 'Your Service Has Been Temporarily Suspended for 15 Days.';
-                $package->is_suspend     = true;
-                $package->suspend_reason = 'Suspend for 15 days';
-                $package->suspend_until  = now()->addDays(15);
-
+                $title = 'Your Service Has Been Temporarily Suspended for 15 Days.';
             } elseif ($request->action_name == 'Suspend for 30 days') {
-                $title                   = 'Your Service Has Been Temporarily Suspended for 30 Days.';
-                $package->is_suspend     = true;
-                $package->suspend_reason = 'Suspend for 30 days';
-                $package->suspend_until  = now()->addDays(30);
+                $title = 'Your Service Has Been Temporarily Suspended for 30 Days.';
             } elseif ($request->action_name == 'Suspend permanently') {
-                $title                   = 'Your Service Has Been Permanently Suspended.';
-                $package->is_suspend     = true;
-                $package->suspend_reason = 'Suspend permanently';
-                $package->suspend_until  = null;
+                $title = 'Your Service Has Been Permanently Suspended.';
             }
-            $package->save();
+
+            // 🔸 Action অনুযায়ী package suspend করা হচ্ছে
+            foreach ($packages as $package) {
+                if ($request->action_name == 'Suspend for 3 days') {
+                    $package->is_suspend     = true;
+                    $package->suspend_reason = 'Suspend for 3 days';
+                    $package->suspend_until  = now()->addDays(3);
+                } elseif ($request->action_name == 'Suspend for 7 days') {
+                    $package->is_suspend     = true;
+                    $package->suspend_reason = 'Suspend for 7 days';
+                    $package->suspend_until  = now()->addDays(7);
+                } elseif ($request->action_name == 'Suspend for 15 days') {
+                    $package->is_suspend     = true;
+                    $package->suspend_reason = 'Suspend for 15 days';
+                    $package->suspend_until  = now()->addDays(15);
+                } elseif ($request->action_name == 'Suspend for 30 days') {
+                    $package->is_suspend     = true;
+                    $package->suspend_reason = 'Suspend for 30 days';
+                    $package->suspend_until  = now()->addDays(30);
+                } elseif ($request->action_name == 'Suspend permanently') {
+                    $package->is_suspend     = true;
+                    $package->suspend_reason = 'Suspend permanently';
+                    $package->suspend_until  = null;
+                }
+
+                $package->save();
+            }
+
             $report->update([
                 'report_action'             => $request->action_name,
                 'report_action_description' => $request->action_reason,
             ]);
-            $report_data = [
+            $firstPackage = $packages->first();
+            $report_data  = [
                 'booking_id'                => $report->booking_id,
-                'service_name'              => $package->title,
+                'service_name'              => $firstPackage ? $firstPackage->title : null,
                 'report_reason'             => $report->report_reason,
                 'report_description'        => $report->report_description,
                 'report_action'             => $report->report_action,
                 'report_action_description' => $report->report_action_description,
             ];
+
             $provider->notify(new ReportWarningNotification($title, $type, $report_data));
-            return $this->responseSuccess($report, "Take report action as $request->action_name.");
+
+            return $this->responseSuccess($report, "Take report action as {$request->action_name}.");
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
         }

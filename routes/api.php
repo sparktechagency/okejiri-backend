@@ -72,8 +72,9 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::put('update-service-available-time/{package_id}', [ProviderServiceController::class, 'updateServiceAvailableTime']);
 
             Route::get('get-provider-orders', [BookingController::class, 'getProviderOrders']);
-            Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
             Route::post('request-extend-delivery-time', [BookingController::class, 'requestExtendDeliveryTime']);
+            Route::post('order-approve/{booking_id}', [BookingController::class, 'orderApprove']);
+            Route::post('order-reject/{booking_id}', [BookingController::class, 'orderReject']);
         });
 
         // User routes
@@ -151,8 +152,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('provider-transactions/{provider_id}', [WalletManagementController::class, 'providerTransactions']);
 
             Route::get('referral-management', [ReferralManagementController::class, 'referralManagement']);
-            Route::get('referral-management/{refer_id}', [ReferralManagementController::class, '
-            ', ]);
+            Route::get('referral-management/{refer_id}', action: [ReferralManagementController::class, 'referralManagementDetail']);
         });
 
         // user.provider routes
@@ -165,6 +165,8 @@ Route::group(['middleware' => 'api'], function ($router) {
 
             Route::get('my-transactions', [WalletManagementController::class, 'myTransactions']);
             Route::post('transfer-balance', [WalletManagementController::class, 'transferBalance']);
+
+                  Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
         });
 
         Route::middleware('admin.user.provider')->as('common')->group(function () {
@@ -194,10 +196,6 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::prefix('payment')->group(function () {
                 Route::post('payment-intent', [PaymentController::class, 'createPaymentIntent']);
             });
-
-            //     Route::prefix('subscription')->group(function () {
-
-            //     });
         });
     });
     Route::get('get-settings', [SettingController::class, 'getSettings']);
