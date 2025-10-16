@@ -75,6 +75,8 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('request-extend-delivery-time', [BookingController::class, 'requestExtendDeliveryTime']);
             Route::post('order-approve/{booking_id}', [BookingController::class, 'orderApprove']);
             Route::post('order-reject/{booking_id}', [BookingController::class, 'orderReject']);
+            Route::post('request-for-delivery/{booking_id}', [BookingController::class, 'requestForDelivery']);
+
         });
 
         // User routes
@@ -107,6 +109,10 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('/rating', [RatingController::class, 'create']);
             Route::post('/delivery-time-extension/accept/{request_id}', [BookingController::class, 'acceptExtendDeliveryTime']);
             Route::post('/delivery-time-extension/decline/{request_id}', [BookingController::class, 'declineExtendDeliveryTime']);
+            Route::post('decline-delivery-request/{booking_id}', [BookingController::class, 'declineDeliveryRequest']);
+            Route::post('accept-delivery-request/{booking_id}', [BookingController::class, 'acceptDeliveryRequest']);
+     Route::get('my-bookings', [BookingController::class, 'myBookings']);
+     Route::get('bookings-history', [BookingController::class, 'bookingsHistory']);
 
         });
 
@@ -166,7 +172,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('my-transactions', [WalletManagementController::class, 'myTransactions']);
             Route::post('transfer-balance', [WalletManagementController::class, 'transferBalance']);
 
-                  Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
+            Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
         });
 
         Route::middleware('admin.user.provider')->as('common')->group(function () {

@@ -12,6 +12,8 @@ use App\Models\ExtendDeliveryTime;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Notifications\DeliveryRequestAcceptDeclineRequest;
+use App\Notifications\DeliveryRequestSentNotification;
 use App\Notifications\ExtendDeliveryTimeAcceptNotification;
 use App\Notifications\ExtendDeliveryTimeDeclineNotification;
 use App\Notifications\ExtendDeliveryTimeNotification;
@@ -27,7 +29,6 @@ use Illuminate\Support\Str;
 use Stripe\PaymentIntent;
 use Stripe\Refund;
 use Stripe\Stripe;
-
 
 class BookingController extends Controller
 {
@@ -76,7 +77,7 @@ class BookingController extends Controller
                 'schedule_time_slot' => $request->schedule_time_slot,
                 'price'              => $request->price,
                 'number_of_people'   => $request->number_of_people,
-                'payment_type'  => $request->payment_type,
+                'payment_type'       => $request->payment_type,
                 'payment_intent_id'  => $request->payment_intent_id,
                 'order_id'           => 'ORD-' . Str::upper(Str::random(10)),
                 'status'             => 'New',
@@ -222,8 +223,8 @@ class BookingController extends Controller
     public function orderReject($booking_id)
     {
         try {
-             $booking = Booking::with('transaction')->findOrFail($booking_id);
-            $user           = User::findOrFail($booking->user_id);
+            $booking = Booking::with('transaction')->findOrFail($booking_id);
+            $user    = User::findOrFail($booking->user_id);
             if ($booking->payment_type == 'from_balance') {
                 $user->wallet_balance += $booking->price;
                 $user->save();
@@ -252,4 +253,114 @@ class BookingController extends Controller
             return $this->responseError($e->getMessage());
         }
     }
+
+    public function requestForDelivery($booking_id)
+    {
+        try {
+            $booking  = Booking::findOrFail($booking_id);
+            $provider = User::findOrFail($booking->provider_id)->only(['id', 'name', 'kyc_status']);
+            $user     = User::findOrFail($booking->user_id);
+            $user->notify(new DeliveryRequestSentNotification($provider, $booking->id));
+            return $this->responseSuccess($booking, 'Delivery request sent successfully');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+    public function declineDeliveryRequest($booking_id)
+    {
+        try {
+            $booking  = Booking::findOrFail($booking_id);
+            $provider = User::findOrFail($booking->provider_id);
+
+            $user = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
+
+            $notification_data = [
+                'title'     => 'Delivery request decline',
+                'sub_title' => 'Tap to see details',
+                'user'      => $user,
+                'order_id'  => $booking_id,
+                'type'      => 'delivery_request_decline',
+            ];
+            $provider->notify(new DeliveryRequestAcceptDeclineRequest($notification_data));
+            return $this->responseSuccess($booking, 'Delivery request decline successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+    public function acceptDeliveryRequest($booking_id)
+    {
+        try {
+            return $booking  = Booking::findOrFail($booking_id);
+            $booking->status = 'Completed';
+            $booking->save();
+            //rest code here
+
+            $provider          = User::findOrFail($booking->provider_id);
+            $user              = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
+            $notification_data = [
+                'title'     => 'Delivery request approved',
+                'sub_title' => 'Tap to see details',
+                'user'      => $user,
+                'order_id'  => $booking_id,
+                'type'      => 'delivery_request_approved',
+            ];
+            $provider->notify(new DeliveryRequestAcceptDeclineRequest($notification_data));
+            return $this->responseSuccess($booking, 'Delivery request accept successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+    public function myBookings(Request $request)
+    {
+        $per_page = $request->input('per_page', 10);
+
+        $bookings = Booking::with([
+            'provider' => function ($q) {
+                $q->select('id', 'name', 'avatar', 'kyc_status', 'provider_type')
+                    ->withAvg('ratings', 'rating');
+            }, 'provider.company:id,provider_id,company_logo,company_name',
+        ])
+            ->where('user_id', Auth::id())
+            ->withCount('booking_items')
+            ->whereIn('status', ['New', 'Pending'])
+            ->latest('id')
+            ->paginate($per_page);
+
+        $bookings->getCollection()->transform(function ($booking) {
+            if ($booking->provider) {
+                $avg                                   = $booking->provider->ratings_avg_rating;
+                $booking->provider->ratings_avg_rating = number_format($avg ?? 0, 1);
+            }
+            return $booking;
+        });
+
+        return $this->responseSuccess($bookings, 'My bookings retrieved successfully.');
+    }
+    public function bookingsHistory(Request $request)
+    {
+        $per_page = $request->input('per_page', 10);
+
+        $bookings = Booking::with([
+            'provider' => function ($q) {
+                $q->select('id', 'name', 'avatar', 'kyc_status', 'provider_type')
+                    ->withAvg('ratings', 'rating');
+            }, 'provider.company:id,provider_id,company_logo,company_name',
+        ])
+            ->where('user_id', Auth::id())
+            ->withCount('booking_items')
+            ->where('status', 'Completed')
+            ->latest('id')
+            ->paginate($per_page);
+
+        $bookings->getCollection()->transform(function ($booking) {
+            if ($booking->provider) {
+                $avg                                   = $booking->provider->ratings_avg_rating;
+                $booking->provider->ratings_avg_rating = number_format($avg ?? 0, 1);
+            }
+            return $booking;
+        });
+
+        return $this->responseSuccess($bookings, 'Bookings history retrieved successfully.');
+    }
+
 }
