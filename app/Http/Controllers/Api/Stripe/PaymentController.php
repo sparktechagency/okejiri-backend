@@ -23,13 +23,13 @@ class PaymentController extends Controller
             $intent = PaymentIntent::create([
                 'amount'                    => $request->amount * 100,
                 'currency'                  => strtolower($request->currency),
-                'payment_method_types' => ['card'],
-                // 'automatic_payment_methods' => [
-                //     'enabled'         => true,
-                //     'allow_redirects' => 'never',
-                // ],
-                // 'payment_method'            => 'pm_card_visa',
-                // 'confirm'                   => true,
+                // 'payment_method_types' => ['card'],
+                'automatic_payment_methods' => [
+                    'enabled'         => true,
+                    'allow_redirects' => 'never',
+                ],
+                'payment_method'            => 'pm_card_visa',
+                'confirm'                   => true,
                 'metadata'                  => [
 
                 ],

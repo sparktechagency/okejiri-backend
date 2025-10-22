@@ -143,7 +143,22 @@ class BookingController extends Controller
     public function orderDetails($order_id)
     {
         try {
-            $order_details = Booking::with('user:id,name,avatar,kyc_status', 'billing', 'booking_items.package.package_detail_items', 'review.user:id,name,avatar')->findOrFail($order_id);
+            $order_details = Booking::with([
+                'user:id,name,avatar,kyc_status',
+                'provider' => function ($q) {
+                    $q->select('id', 'name', 'avatar', 'kyc_status')
+                        ->withAvg('ratings', 'rating')
+                        ->withCount('ratings');
+                },
+                'billing',
+                'booking_items.package.package_detail_items',
+                'review.user:id,name,avatar',
+            ])->findOrFail($order_id);
+
+            if ($order_details->provider) {
+                $avg                                         = $order_details->provider->ratings_avg_rating;
+                $order_details->provider->ratings_avg_rating = number_format($avg ?? 0, 1);
+            }
             return $this->responseSuccess($order_details, 'Order details retrieved successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -363,4 +378,49 @@ class BookingController extends Controller
         return $this->responseSuccess($bookings, 'Bookings history retrieved successfully.');
     }
 
+    public function orderCancel(Request $request, $order_id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $booking = Booking::findOrFail($order_id);
+
+            if ($booking->status == 'Cancelled') {
+                return $this->responseError(null, 'Order is already cancelled.');
+            }
+
+            if ($booking->payment_type == 'from_balance') {
+                $user = $booking->user;
+                $user->wallet_balance += $booking->price;
+                $user->save();
+            } elseif ($booking->payment_type == 'make_payment') {
+                Stripe::setApiKey(config('services.stripe.secret'));
+
+                $intent   = PaymentIntent::retrieve($booking->payment_intent_id);
+                $chargeId = $intent->latest_charge;
+
+                if (! $chargeId) {
+                    return $this->responseError(null, 'Could not find any charge information for this payment.');
+                }
+
+                $refund = Refund::create([
+                    'charge' => $chargeId,
+                ]);
+            } else {
+                return $this->responseError(null, 'Invalid payment type.');
+            }
+
+            $booking->status = 'Cancelled';
+            $booking->save();
+
+            DB::commit();
+
+            return $this->responseSuccess($booking, 'Order cancelled successfully.');
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            return $this->responseError($e->getMessage());
+        }
+
+    }
 }

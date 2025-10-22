@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\Stripe\PaymentController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WalletManagementController;
 use App\Http\Controllers\BoostProfileController;
+use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\ProviderPortfolioController;
 use Illuminate\Support\Facades\Route;
 
@@ -111,8 +112,8 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('/delivery-time-extension/decline/{request_id}', [BookingController::class, 'declineExtendDeliveryTime']);
             Route::post('decline-delivery-request/{booking_id}', [BookingController::class, 'declineDeliveryRequest']);
             Route::post('accept-delivery-request/{booking_id}', [BookingController::class, 'acceptDeliveryRequest']);
-     Route::get('my-bookings', [BookingController::class, 'myBookings']);
-     Route::get('bookings-history', [BookingController::class, 'bookingsHistory']);
+            Route::get('my-bookings', [BookingController::class, 'myBookings']);
+            Route::get('bookings-history', [BookingController::class, 'bookingsHistory']);
 
         });
 
@@ -173,6 +174,13 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('transfer-balance', [WalletManagementController::class, 'transferBalance']);
 
             Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
+            Route::post('order-cancel/{order_id}', [BookingController::class, 'orderCancel']);
+
+            Route::post('add-dispute', [DisputeController::class, 'addDispute']);
+            Route::get('my-dispute', [DisputeController::class, 'myDispute']);
+            Route::get('dispute-details/{dispute_id}', [DisputeController::class, 'DisputeDetails']);
+            Route::delete('dispute-delete/{dispute_id}', [DisputeController::class, 'DisputeDelete']);
+
         });
 
         Route::middleware('admin.user.provider')->as('common')->group(function () {
