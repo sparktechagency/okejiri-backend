@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AddToCartController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\DisputeAppealController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\FavouriteController;
 use App\Http\Controllers\Api\HomeController;
@@ -181,6 +182,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('dispute-details/{dispute_id}', [DisputeController::class, 'DisputeDetails']);
             Route::delete('dispute-delete/{dispute_id}', [DisputeController::class, 'DisputeDelete']);
 
+            Route::post('add-dispute-appeal', [DisputeAppealController::class, 'addDisputeAppeal']);
         });
 
         Route::middleware('admin.user.provider')->as('common')->group(function () {

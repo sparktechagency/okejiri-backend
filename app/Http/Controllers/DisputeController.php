@@ -5,6 +5,7 @@ use App\Http\Requests\Dispute\DisputeStoreRequest;
 use App\Models\Booking;
 use App\Models\Dispute;
 use App\Models\User;
+use App\Notifications\NewDisputeNotification;
 use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
 use Exception;
@@ -53,6 +54,8 @@ class DisputeController extends Controller
 
         $dispute->save();
 
+        $notify_user = User::where('id', $to_user_id)->first();
+        $notify_user->notify(new NewDisputeNotification($dispute->id));
         return $this->responseSuccess($dispute, 'Dispute created successfully', 201);
     }
 
@@ -67,7 +70,7 @@ class DisputeController extends Controller
     public function DisputeDetails($dispute_id)
     {
         try {
-            $dispute = Dispute::findOrFail($dispute_id);
+            $dispute = Dispute::with('appeal')->findOrFail($dispute_id);
             if (Auth::id() == $dispute->from_user_id) {
                 $oppositeUser = User::with('company')->select('id', 'name', 'email', 'avatar', 'role', 'kyc_status')
                     ->find($dispute->to_user_id);
@@ -85,10 +88,19 @@ class DisputeController extends Controller
     public function DisputeDelete($dispute_id)
     {
         try {
-            $dispute = Dispute::findOrFail($dispute_id);
-            if($dispute->attachments){
+            $dispute = Dispute::with('appeal')->findOrFail($dispute_id);
+            if ($dispute->attachments) {
                 $attachments = is_array($dispute->attachments) ? $dispute->attachments : json_decode($dispute->attachments, true);
                 foreach ($attachments as $filePath) {
+                    $this->fileuploadService->deleteFile($filePath);
+                }
+            }
+            if ($dispute->appeal && $dispute->appeal->attachments) {
+                $appealAttachments = is_array($dispute->appeal->attachments)
+                    ? $dispute->appeal->attachments
+                    : json_decode($dispute->appeal->attachments, true);
+
+                foreach ($appealAttachments as $filePath) {
                     $this->fileuploadService->deleteFile($filePath);
                 }
             }

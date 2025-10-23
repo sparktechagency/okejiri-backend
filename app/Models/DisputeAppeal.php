@@ -1,20 +1,22 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Dispute extends Model
+class DisputeAppeal extends Model
 {
+
     protected $guarded = ['id'];
 
     public function getAttachmentsAttribute($file)
     {
         $useStoragePrefix = false;
-        $prefix           = $useStoragePrefix ? 'storage/' : '';
+        $prefix = $useStoragePrefix ? 'storage/' : '';
 
         $isJson = fn($string) => is_string($string)
-        && str_starts_with(trim($string), '[')
-        && str_ends_with(trim($string), ']');
+            && str_starts_with(trim($string), '[')
+            && str_ends_with(trim($string), ']');
 
         $buildUrl = function ($f) use ($prefix) {
             $path = $prefix . ltrim($f, '/');
@@ -33,10 +35,5 @@ class Dispute extends Model
         }
 
         return null;
-    }
-
-    public function appeal()
-    {
-        return $this->hasOne(DisputeAppeal::class);
     }
 }
