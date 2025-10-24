@@ -2,7 +2,6 @@
 namespace App\Http\Controllers\Api\Stripe;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Stripe\Connect\CreateAccountLinkRequest;
 use App\Http\Requests\Stripe\Connect\CreateAccountRequest;
 use App\Http\Requests\Stripe\Connect\CreateInstantPayoutRequest;
 use App\Http\Requests\Stripe\Connect\CreatePaymentIntentRequest;
@@ -41,7 +40,6 @@ class ConnectController extends Controller
             if ($user->stripe_account_id) {
                 return $this->responseError(null, 'You already have a Stripe account. Use the existing one.', 422);
             }
-
             $account = Account::create([
                 'type'          => 'express',
                 'country'       => $request->country,
@@ -52,38 +50,29 @@ class ConnectController extends Controller
                 ],
                 'business_type' => 'individual',
             ]);
-            $user->stripe_account_id      = $account->id;
-            $user->stripe_charges_enabled = false;
-            $user->stripe_payouts_enabled = false;
-            $user->save();
 
-            $data['account_id'] = $account->id;
-            return $this->responseSuccess($data, 'Stripe account created successfully.');
-        } catch (Exception $e) {
-            return $this->responseError($e->getMessage());
-        }
-    }
+            $user->update([
+                'stripe_account_id'      => $account->id,
+                'stripe_charges_enabled' => false,
+                'stripe_payouts_enabled' => false,
+            ]);
 
-    // Create Onboarding Link
-    public function createAccountLink(CreateAccountLinkRequest $request)
-    {
-        try {
-            $user = Auth::user();
-            if (! $user->stripe_account_id) {
-                return $this->responseError(null, 'No Stripe account found. Create an account first.', 422);
-            }
-            $link = AccountLink::create(params: [
-                'account'     => $user->stripe_account_id,
+            $link = AccountLink::create([
+                'account'     => $account->id,
                 'refresh_url' => $request->refresh_url,
                 'return_url'  => $request->return_url,
                 'type'        => 'account_onboarding',
             ]);
-            $data['onboarding_url'] = $link->url;
-            return $this->responseSuccess($data, 'Onboarding link created successfully.');
+
+            $data = [
+                'account_id'     => $account->id,
+                'onboarding_url' => $link->url,
+            ];
+
+            return $this->responseSuccess($data, 'Stripe account and onboarding link created successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
         }
-
     }
 
     // Create PaymentIntent

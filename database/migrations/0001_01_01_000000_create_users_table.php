@@ -37,11 +37,6 @@ return new class extends Migration
             $table->boolean('has_service')->default(false);
             $table->boolean('is_personalization_complete')->default(false);
             $table->boolean('is_boosted')->default(false);
-            // // Connected account
-            // $table->string('stripe_account_id')->nullable();
-            // $table->boolean('stripe_charges_enabled')->default(false);
-            // $table->boolean('stripe_payouts_enabled')->default(false);
-
             $table->decimal('discount')->default(0)->comment('product discount. this only for provider role');
             $table->string('otp')->nullable()->unique();
             $table->string('otp_expires_at')->nullable();

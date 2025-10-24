@@ -188,7 +188,7 @@ class User extends Authenticatable implements JWTSubject
     }
     public function provider_services()
     {
-        return $this->hasMany(ProviderService::class, 'provider_id');
+        return $this->hasMany(ProviderService::class, 'provider_id','id');
     }
     public function ratings()
     {

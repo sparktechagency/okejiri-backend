@@ -23,14 +23,16 @@ class CreateAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'country' => 'required|string|size:2',
+            'country'     => 'required|string|size:2',
+            'refresh_url' => 'required|url',
+            'return_url'  => 'required|url',
         ];
     }
 
     public function messages()
     {
         return [
-          'country.size' => 'The country code must be in 2-letter ISO format (e.g., US, BD).',
+            'country.size' => 'The country code must be in 2-letter ISO format (e.g., US, BD).',
         ];
     }
 

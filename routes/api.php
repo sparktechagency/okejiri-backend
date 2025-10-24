@@ -1,31 +1,33 @@
 <?php
 
-use App\Http\Controllers\Api\AddToCartController;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\BookingController;
-use App\Http\Controllers\Api\DisputeAppealController;
-use App\Http\Controllers\Api\FaqController;
-use App\Http\Controllers\Api\FavouriteController;
-use App\Http\Controllers\Api\HomeController;
-use App\Http\Controllers\Api\MessageController;
-use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\PageController;
-use App\Http\Controllers\Api\PromotionController;
-use App\Http\Controllers\Api\ProviderController;
-use App\Http\Controllers\Api\ProviderServiceController;
-use App\Http\Controllers\Api\RatingController;
-use App\Http\Controllers\Api\ReferralManagementController;
-use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\ServiceController;
-use App\Http\Controllers\Api\ServiceNearbyController;
-use App\Http\Controllers\Api\SettingController;
-use App\Http\Controllers\Api\Stripe\PaymentController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\WalletManagementController;
-use App\Http\Controllers\BoostProfileController;
-use App\Http\Controllers\DisputeController;
-use App\Http\Controllers\ProviderPortfolioController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\DisputeController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\PageController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\BoostProfileController;
+use App\Http\Controllers\Api\AddToCartController;
+use App\Http\Controllers\Api\FavouriteController;
+use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\DisputeAppealController;
+use App\Http\Controllers\Api\ServiceNearbyController;
+use App\Http\Controllers\ProviderPortfolioController;
+use App\Http\Controllers\Api\Stripe\ConnectController;
+use App\Http\Controllers\Api\Stripe\PaymentController;
+use App\Http\Controllers\Api\Stripe\WebhookController;
+use App\Http\Controllers\Api\ProviderServiceController;
+use App\Http\Controllers\Api\WalletManagementController;
+use App\Http\Controllers\Api\ReferralManagementController;
 
 Route::group(['middleware' => 'api'], function ($router) {
 
@@ -111,8 +113,8 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('/rating', [RatingController::class, 'create']);
             Route::post('/delivery-time-extension/accept/{request_id}', [BookingController::class, 'acceptExtendDeliveryTime']);
             Route::post('/delivery-time-extension/decline/{request_id}', [BookingController::class, 'declineExtendDeliveryTime']);
-            Route::post('decline-delivery-request/{booking_id}', [BookingController::class, 'declineDeliveryRequest']);
             Route::post('accept-delivery-request/{booking_id}', [BookingController::class, 'acceptDeliveryRequest']);
+            Route::post('decline-delivery-request/{booking_id}', [BookingController::class, 'declineDeliveryRequest']);
             Route::get('my-bookings', [BookingController::class, 'myBookings']);
             Route::get('bookings-history', [BookingController::class, 'bookingsHistory']);
 
@@ -161,6 +163,8 @@ Route::group(['middleware' => 'api'], function ($router) {
 
             Route::get('referral-management', [ReferralManagementController::class, 'referralManagement']);
             Route::get('referral-management/{refer_id}', action: [ReferralManagementController::class, 'referralManagementDetail']);
+
+            Route::get('bookings', action: [BookingController::class, 'adminBookingsList']);
         });
 
         // user.provider routes
@@ -173,9 +177,6 @@ Route::group(['middleware' => 'api'], function ($router) {
 
             Route::get('my-transactions', [WalletManagementController::class, 'myTransactions']);
             Route::post('transfer-balance', [WalletManagementController::class, 'transferBalance']);
-
-            Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
-            Route::post('order-cancel/{order_id}', [BookingController::class, 'orderCancel']);
 
             Route::post('add-dispute', [DisputeController::class, 'addDispute']);
             Route::get('my-dispute', [DisputeController::class, 'myDispute']);
@@ -195,19 +196,22 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::delete('unsend-for-everyone/{id}', [MessageController::class, 'unsendForEveryone']);
             Route::get('search-new-user', [MessageController::class, 'searchNewUser']);
             Route::get('chat-list', [MessageController::class, 'chatList']);
+
+            Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
+                        Route::post('order-cancel/{order_id}', [BookingController::class, 'orderCancel']);
         });
 
         // Stripe routes
         Route::prefix('stripe')->group(function () {
-            //     Route::prefix('connected')->group(function () {
-            //         Route::post('account-create', [ConnectController::class, 'createAccount']);
-            //         Route::post('account-link', [ConnectController::class, 'createAccountLink']);
-            //         Route::post('payment-intent', [ConnectController::class, 'createPaymentIntent']);
-            //         Route::post('payment-link', [ConnectController::class, 'createPaymentLink']);
-            //         Route::post('login-link', [ConnectController::class, 'createLoginLink']);
-            //         Route::get('balance', [ConnectController::class, 'getBalance']);
-            //         Route::post('payout-instant', [ConnectController::class, 'createInstantPayout']);
-            //     });
+            Route::prefix('connected')->group(function () {
+                Route::post('account-create', [ConnectController::class, 'createAccount']);
+                //         Route::post('account-link', [ConnectController::class, 'createAccountLink']);
+                //         Route::post('payment-intent', [ConnectController::class, 'createPaymentIntent']);
+                //         Route::post('payment-link', [ConnectController::class, 'createPaymentLink']);
+                //         Route::post('login-link', [ConnectController::class, 'createLoginLink']);
+                //         Route::get('balance', [ConnectController::class, 'getBalance']);
+                //         Route::post('payout-instant', [ConnectController::class, 'createInstantPayout']);
+            });
 
             Route::prefix('payment')->group(function () {
                 Route::post('payment-intent', [PaymentController::class, 'createPaymentIntent']);
@@ -220,5 +224,5 @@ Route::group(['middleware' => 'api'], function ($router) {
     Route::apiResource('services', ServiceController::class)->only('index');
     Route::apiResource('promotions', PromotionController::class)->only('index');
     // Route::post('stripe/connected/transfer-create', [ConnectController::class, 'createTransfer']);
-    // Route::post('stripe/webhook', [WebhookController::class, 'handleWebhook']);
+    Route::post('stripe/webhook', [WebhookController::class, 'handleWebhook']);
 });

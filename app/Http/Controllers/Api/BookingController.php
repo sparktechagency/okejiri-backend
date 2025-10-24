@@ -1,34 +1,36 @@
 <?php
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Booking\BookingStoreRequest;
-use App\Http\Requests\Rating\ExtendDeliveryStoreRequest;
-use App\Models\AddToCart;
-use App\Models\BillingDetail;
-use App\Models\Booking;
-use App\Models\BookingItem;
-use App\Models\ExtendDeliveryTime;
-use App\Models\Setting;
-use App\Models\Transaction;
-use App\Models\User;
-use App\Notifications\DeliveryRequestAcceptDeclineRequest;
-use App\Notifications\DeliveryRequestSentNotification;
-use App\Notifications\ExtendDeliveryTimeAcceptNotification;
-use App\Notifications\ExtendDeliveryTimeDeclineNotification;
-use App\Notifications\ExtendDeliveryTimeNotification;
-use App\Notifications\NewOrderNotification;
-use App\Notifications\OrderApprovedNotification;
-use App\Notifications\OrderRejectNotification;
-use App\Traits\ApiResponse;
 use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Stripe\PaymentIntent;
 use Stripe\Refund;
 use Stripe\Stripe;
+use App\Models\User;
+use Stripe\Transfer;
+use App\Models\Booking;
+use App\Models\Setting;
+use App\Models\AddToCart;
+use Stripe\PaymentIntent;
+use App\Models\BookingItem;
+use App\Models\Transaction;
+use App\Traits\ApiResponse;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Models\BillingDetail;
+use App\Models\ExtendDeliveryTime;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use App\Notifications\NewOrderNotification;
+use App\Notifications\OrderCancelNotification;
+use App\Notifications\OrderRejectNotification;
+use App\Notifications\OrderApprovedNotification;
+use App\Http\Requests\Booking\BookingStoreRequest;
+use App\Notifications\ExtendDeliveryTimeNotification;
+use App\Notifications\DeliveryRequestSentNotification;
+use App\Http\Requests\Rating\ExtendDeliveryStoreRequest;
+use App\Notifications\DeliveryRequestAcceptDeclineRequest;
+use App\Notifications\ExtendDeliveryTimeAcceptNotification;
+use App\Notifications\ExtendDeliveryTimeDeclineNotification;
 
 class BookingController extends Controller
 {
@@ -93,6 +95,8 @@ class BookingController extends Controller
 
             Transaction::create([
                 'booking_id'       => $booking->id,
+                'sender_id'        => $booking->user_id,
+                'receiver_id'      => $booking->provider_id,
                 'amount'           => $request->price,
                 'transaction_type' => 'purchase',
                 'profit'           => ($request->price * $profit) / 100,
@@ -144,11 +148,18 @@ class BookingController extends Controller
     {
         try {
             $order_details = Booking::with([
-                'user:id,name,avatar,kyc_status',
+                'user:id,name,avatar,email,address,phone,kyc_status',
                 'provider' => function ($q) {
-                    $q->select('id', 'name', 'avatar', 'kyc_status')
+                    $q->select('id', 'name', 'avatar', 'kyc_status', 'email', 'address', 'phone')
                         ->withAvg('ratings', 'rating')
-                        ->withCount('ratings');
+                        ->withCount('ratings')
+                        ->with([
+                            'company:id,provider_id,company_name,company_logo',
+                            'provider_services' => function ($q2) {
+                                $q2->select('id', 'provider_id', 'service_id')
+                                    ->with('service');
+                            },
+                        ]);
                 },
                 'billing',
                 'booking_items.package.package_detail_items',
@@ -305,11 +316,31 @@ class BookingController extends Controller
     public function acceptDeliveryRequest($booking_id)
     {
         try {
-            return $booking  = Booking::findOrFail($booking_id);
+            Stripe::setApiKey(config('services.stripe.secret'));
+            $booking = Booking::with('transaction')->findOrFail($booking_id);
+            if ($booking->status === 'Completed') {
+                return $this->responseSuccess($booking, 'Booking already completed and payment already transferred.', 200);
+            }
+            if (! $booking->transaction) {
+                return $this->responseError(null, 'No transaction found for this booking.', 404);
+            }
+            $provider = $booking->provider;
+            if (! $provider || ! $provider->stripe_account_id) {
+                return $this->responseError(null, 'Provider has no connected Stripe account.', 400);
+            }
+            $amount = $booking->transaction->amount - $booking->transaction->profit;
+            if ($amount <= 0) {
+                return $this->responseError(null, 'Invalid transfer amount.', 400);
+            }
+
+            $transfer = Transfer::create([
+                'amount'      => $amount * 100,
+                'currency'    => 'usd',
+                'destination' => $provider->stripe_account_id,
+            ]);
+
             $booking->status = 'Completed';
             $booking->save();
-            //rest code here
-
             $provider          = User::findOrFail($booking->provider_id);
             $user              = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
             $notification_data = [
@@ -325,6 +356,7 @@ class BookingController extends Controller
             return $this->responseError($e->getMessage());
         }
     }
+
     public function myBookings(Request $request)
     {
         $per_page = $request->input('per_page', 10);
@@ -380,6 +412,11 @@ class BookingController extends Controller
 
     public function orderCancel(Request $request, $order_id)
     {
+        if(Auth::user()->role == 'ADMIN'){
+            $request->validate([
+                'reason' => 'required|string|max:1000',
+            ]);
+        }
         try {
             DB::beginTransaction();
 
@@ -415,6 +452,10 @@ class BookingController extends Controller
 
             DB::commit();
 
+            if($request->reason){
+             $booking->user->notify(new OrderCancelNotification($request->reason,$booking->id));
+             $booking->provider->notify(new OrderCancelNotification($request->reason,$booking->id));
+            }
             return $this->responseSuccess($booking, 'Order cancelled successfully.');
 
         } catch (Exception $e) {
@@ -423,4 +464,35 @@ class BookingController extends Controller
         }
 
     }
+
+    public function adminBookingsList(Request $request)
+    {
+        $request->validate([
+            'filter' => 'nullable|in:New,Pending,Completed',
+        ]);
+        $per_page = $request->input('per_page', 10);
+        $search   = $request->input('search');
+        $filter   = $request->input('filter');
+
+        $bookings = Booking::with([
+            'user:id,name,avatar,kyc_status',
+            'provider:id,name,avatar,kyc_status',
+        ])
+            ->whereIn('status', ['Pending', 'New', 'Completed'])
+            ->when($search, function ($query) use ($search) {
+                $query->whereHas('user', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                })->orWhereHas('provider', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                });
+            })
+            ->when($filter, function ($query) use ($filter) {
+                $query->where('status', $filter);
+            })
+            ->latest('id')
+            ->paginate($per_page);
+
+        return $this->responseSuccess($bookings, 'Bookings retrieved successfully.');
+    }
+
 }
