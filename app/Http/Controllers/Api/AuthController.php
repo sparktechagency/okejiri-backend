@@ -226,6 +226,9 @@ class AuthController extends Controller
     {
         try {
             $user_exists = User::where('email', $request->email)->first();
+            if ($user_exists->is_blocked) {
+                return $this->responseError(null, 'Your account has been blocked. Please contact support.', 403);
+            }
             if ($user_exists) {
                 if ($user_exists->role !== $request->role) {
                     return $this->responseError(null, 'You are not authorized as this role.', 403);
@@ -311,6 +314,9 @@ class AuthController extends Controller
     {
         try {
             $user = User::where('email', $request->email)->first();
+            if ($user->is_blocked) {
+                return $this->responseError(null, 'Your account has been blocked. Please contact support.', 403);
+            }
             if ($user->role !== $request->role) {
                 return $this->responseError(null, 'You are not authorized as this role.', 403);
             }
@@ -353,6 +359,7 @@ class AuthController extends Controller
             ->where('otp', $request->otp)
             ->where('otp_expires_at', '>=', now())
             ->first();
+
         if (! $user) {
             return $this->responseError(null, 'OTP is incorrect or has expired.', 400);
         }

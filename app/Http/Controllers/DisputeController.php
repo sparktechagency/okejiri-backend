@@ -11,6 +11,10 @@ use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Stripe\PaymentIntent;
+use Stripe\Refund;
+use Stripe\Stripe;
+use Stripe\Transfer;
 
 class DisputeController extends Controller
 {
@@ -106,6 +110,132 @@ class DisputeController extends Controller
             }
             $dispute->delete();
             return $this->responseSuccess($dispute, 'Dispute deleted successfully');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+
+    public function getAdminDispute(Request $request)
+    {
+        $request->validate([
+            'filter' => 'nullable|in:Pending,Under review,Resolved',
+            'role'   => 'required|in:USER,PROVIDER',
+        ]);
+        $per_page = $request->input('per_page', 10);
+        $filter   = $request->input('filter');
+        $search   = $request->input('search');
+        $role     = $request->input('role', 'USER');
+
+        $disputes = Dispute::with([
+            'to_user:id,name,avatar,kyc_status',
+            'from_user:id,name,avatar,kyc_status',
+        ])
+            ->where('raised_by_role', $role)
+            ->when($filter, function ($q) use ($filter) {
+                $q->where('status', $filter);
+            })
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($query) use ($search) {
+                    $query->where('reason', 'like', "%{$search}%")
+                        ->orWhereHas('from_user', function ($u) use ($search) {
+                            $u->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('to_user', function ($u) use ($search) {
+                            $u->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->latest('id')
+            ->paginate($per_page);
+        return $this->responseSuccess($disputes, 'Disputes retrieved successfully');
+    }
+
+    public function getAdminDisputeDetails($dispute_id)
+    {
+        try {
+            $dispute_details = Dispute::with([
+                'to_user:id,name,avatar,kyc_status,email,phone,address',
+                'from_user:id,name,avatar,kyc_status,email,phone,address',
+                'appeal',
+            ])->findOrFail($dispute_id);
+            return $this->responseSuccess($dispute_details, 'Dispute details retrieved successfully');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+
+    public function disputeAction(Request $request, $dispute_id)
+    {
+        $request->validate([
+            'action' => 'required|in:refund_user,pay_provider,block_user,block_provider',
+            'days'   => 'required_if:action,block_user,block_provider|numeric',
+        ]);
+        try {
+            $dispute = Dispute::with('booking.transaction')->findOrFail($dispute_id);
+            if ($request->action == 'refund_user') {
+                if ($dispute->booking->payment_type == 'from_balance') {
+                    $user = $dispute->booking->user;
+                    $user->wallet_balance += $dispute->booking->price;
+                    $user->save();
+                } elseif ($dispute->booking->payment_type == 'make_payment') {
+                    Stripe::setApiKey(config('services.stripe.secret'));
+
+                    $intent   = PaymentIntent::retrieve($dispute->booking->payment_intent_id);
+                    $chargeId = $intent->latest_charge;
+
+                    if (! $chargeId) {
+                        return $this->responseError(null, 'Could not find any charge information for this payment.');
+                    }
+
+                    $refund = Refund::create([
+                        'charge' => $chargeId,
+                    ]);
+                }
+                $dispute->booking->status = 'Cancelled';
+                $dispute->booking->save();
+                $dispute->status = 'Resolved';
+                $dispute->save();
+
+            } elseif ($request->action == 'pay_provider') {
+                Stripe::setApiKey(config('services.stripe.secret'));
+                if ($dispute->booking->status === 'Completed') {
+                    return $this->responseSuccess(null, 'Booking already completed and payment already transferred.', 200);
+                }
+                if (! $dispute->booking->transaction) {
+                    return $this->responseError(null, 'No transaction found for this booking.', 404);
+                }
+                $provider = $dispute->booking->provider;
+                if (! $provider || ! $provider->stripe_account_id) {
+                    return $this->responseError(null, 'Provider has no connected Stripe account.', 400);
+                }
+
+                $amount = $dispute->booking->transaction->amount - $dispute->booking->transaction->profit;
+                if ($amount <= 0) {
+                    return $this->responseError(null, 'Invalid transfer amount.', 400);
+                }
+
+                $transfer = Transfer::create([
+                    'amount'      => $amount * 100,
+                    'currency'    => 'usd',
+                    'destination' => $provider->stripe_account_id,
+                ]);
+
+                $dispute->booking->status = 'Completed';
+                $dispute->booking->save();
+                $dispute->status = 'Resolved';
+                $dispute->save();
+            } elseif ($request->action == 'block_user') {
+                $user                   = $dispute->booking->user;
+                $user->is_blocked       = 1;
+                $user->block_expires_at = now()->addDays((int) $request->days);
+                $user->save();
+            } elseif ($request->action == 'block_provider') {
+                $provider                   = $dispute->booking->provider;
+                $provider->is_blocked       = 1;
+                $provider->block_expires_at = now()->addDays((int) $request->days);
+                $provider->save();
+            }
+            return $this->responseSuccess(null, 'Action performed successfully');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
         }

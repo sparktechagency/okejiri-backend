@@ -1,33 +1,34 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\FaqController;
-use App\Http\Controllers\DisputeController;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\HomeController;
-use App\Http\Controllers\Api\PageController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\RatingController;
-use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\BookingController;
-use App\Http\Controllers\Api\MessageController;
-use App\Http\Controllers\Api\ServiceController;
-use App\Http\Controllers\Api\SettingController;
-use App\Http\Controllers\Api\ProviderController;
-use App\Http\Controllers\BoostProfileController;
 use App\Http\Controllers\Api\AddToCartController;
-use App\Http\Controllers\Api\FavouriteController;
-use App\Http\Controllers\Api\PromotionController;
-use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DisputeAppealController;
+use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\Api\FavouriteController;
+use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PageController;
+use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\Api\ProviderServiceController;
+use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\ReferralManagementController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceNearbyController;
-use App\Http\Controllers\ProviderPortfolioController;
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\Stripe\ConnectController;
 use App\Http\Controllers\Api\Stripe\PaymentController;
 use App\Http\Controllers\Api\Stripe\WebhookController;
-use App\Http\Controllers\Api\ProviderServiceController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WalletManagementController;
-use App\Http\Controllers\Api\ReferralManagementController;
+use App\Http\Controllers\BoostProfileController;
+use App\Http\Controllers\DisputeController;
+use App\Http\Controllers\ProviderPortfolioController;
+use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'api'], function ($router) {
 
@@ -42,7 +43,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::post('check-token', [AuthController::class, 'validateToken']);
     });
 
-    Route::middleware(['auth:api', 'verified.user'])->prefix('/')->group(function () {
+    Route::middleware(['auth:api', 'verified.user','check.block'])->prefix('/')->group(function () {
         Route::get('profile', [AuthController::class, 'getProfile']);
         Route::post('edit-profile', [AuthController::class, 'editProfile']);
         Route::post('edit-profile-picture', [AuthController::class, 'editProfilePicture']);
@@ -162,9 +163,14 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('provider-transactions/{provider_id}', [WalletManagementController::class, 'providerTransactions']);
 
             Route::get('referral-management', [ReferralManagementController::class, 'referralManagement']);
-            Route::get('referral-management/{refer_id}', action: [ReferralManagementController::class, 'referralManagementDetail']);
+            Route::get('referral-management/{refer_id}', [ReferralManagementController::class, 'referralManagementDetail']);
 
-            Route::get('bookings', action: [BookingController::class, 'adminBookingsList']);
+            Route::get('bookings', [BookingController::class, 'adminBookingsList']);
+            Route::get('dashboard', DashboardController::class);
+
+            Route::get('get-disputes', [DisputeController::class, 'getAdminDispute']);
+            Route::get('get-disputes-details/{dispute_id}', [DisputeController::class, 'getAdminDisputeDetails']);
+            Route::post('dispute-action/{dispute_id}', [DisputeController::class, 'disputeAction']);
         });
 
         // user.provider routes
@@ -198,7 +204,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('chat-list', [MessageController::class, 'chatList']);
 
             Route::get('order-details/{order_id}', [BookingController::class, 'orderDetails']);
-                        Route::post('order-cancel/{order_id}', [BookingController::class, 'orderCancel']);
+            Route::post('order-cancel/{order_id}', [BookingController::class, 'orderCancel']);
         });
 
         // Stripe routes

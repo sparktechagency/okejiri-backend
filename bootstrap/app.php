@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin'         => AdminMiddleware::class,
             'provider'          => ProviderMiddleware::class,
             'user'          => UserMiddleware::class,
+            'check.block'          => CheckIfBlockedMiddleware::class,
             'user.provider'    => UserProviderMiddleware::class,
             'admin.user.provider'    => CommonMiddleware::class,
         ]);
