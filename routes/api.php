@@ -171,6 +171,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('get-disputes', [DisputeController::class, 'getAdminDispute']);
             Route::get('get-disputes-details/{dispute_id}', [DisputeController::class, 'getAdminDisputeDetails']);
             Route::post('dispute-action/{dispute_id}', [DisputeController::class, 'disputeAction']);
+            Route::post('dispute-mail', [DisputeController::class, 'disputeMail']);
         });
 
         // user.provider routes

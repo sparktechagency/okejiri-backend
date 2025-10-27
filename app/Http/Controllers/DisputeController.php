@@ -1,7 +1,9 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Dispute\DisputeMailRequest;
 use App\Http\Requests\Dispute\DisputeStoreRequest;
+use App\Mail\DisputeMail;
 use App\Models\Booking;
 use App\Models\Dispute;
 use App\Models\User;
@@ -11,6 +13,7 @@ use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Stripe\PaymentIntent;
 use Stripe\Refund;
 use Stripe\Stripe;
@@ -240,4 +243,17 @@ class DisputeController extends Controller
             return $this->responseError($e->getMessage());
         }
     }
+
+    public function disputeMail(DisputeMailRequest $request)
+    {
+        try {
+            $user = User::findOrFail($request->user_id);
+            $mail_message=$request->message;
+            Mail::to($user->email)->send(new DisputeMail($request->subject, $mail_message));
+            return $this->responseSuccess(null,'Mail sent successfully');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
+
 }
