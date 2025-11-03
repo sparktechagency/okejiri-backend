@@ -45,10 +45,11 @@ class ConnectController extends Controller
                 'country'       => $request->country,
                 'email'         => $user->email,
                 'capabilities'  => [
-                    'card_payments' => ['requested' => true],
+                    // 'card_payments' => ['requested' => true],
                     'transfers'     => ['requested' => true],
                 ],
                 'business_type' => 'individual',
+                'tos_acceptance' => ['service_agreement' => 'recipient']
             ]);
 
             $user->update([

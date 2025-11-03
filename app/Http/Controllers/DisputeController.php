@@ -217,11 +217,11 @@ class DisputeController extends Controller
                     return $this->responseError(null, 'Invalid transfer amount.', 400);
                 }
 
-                $transfer = Transfer::create([
-                    'amount'      => $amount * 100,
-                    'currency'    => 'usd',
-                    'destination' => $provider->stripe_account_id,
-                ]);
+                    $transfer = Transfer::create([
+                        'amount'      => $amount * 100,
+                        'currency'    => 'ngn',
+                        'destination' => $provider->stripe_account_id,
+                    ]);
 
                 $dispute->booking->status = 'Completed';
                 $dispute->booking->save();

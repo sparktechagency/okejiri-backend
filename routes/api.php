@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WalletManagementController;
 use App\Http\Controllers\BoostProfileController;
 use App\Http\Controllers\DisputeController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProviderPortfolioController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,7 @@ Route::group(['middleware' => 'api'], function ($router) {
 
         // Provider routes
         Route::middleware('provider')->as('provider')->group(function () {
+            Route::get('home-data', [HomeController::class, 'homeData']);
             Route::apiResource('portfolios', ProviderPortfolioController::class);
             Route::post('manage-discounts', [ProviderController::class, 'manageDiscounts']);
             Route::get('my-services', [ProviderController::class, 'myServices']);
@@ -81,6 +83,12 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('order-approve/{booking_id}', [BookingController::class, 'orderApprove']);
             Route::post('order-reject/{booking_id}', [BookingController::class, 'orderReject']);
             Route::post('request-for-delivery/{booking_id}', [BookingController::class, 'requestForDelivery']);
+
+            Route::get('my-employee',[EmployeeController::class,'index']);
+            Route::post('add-employee',[EmployeeController::class,'store']);
+            Route::get('employee/{employee_id}',[EmployeeController::class,'show']);
+            Route::put('edit-employee/{employee_id}',[EmployeeController::class,'update']);
+            Route::post('assign-employee',[EmployeeController::class,'assignEmployee']);
 
         });
 

@@ -2,10 +2,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
+use App\Models\Employee;
+use App\Models\EmployeeServiceCompletion;
 use App\Models\Favorite;
 use App\Models\Package;
 use App\Models\ProviderPortfolio;
 use App\Models\Rating;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -277,7 +281,7 @@ class HomeController extends Controller
 
     public function getProviderReview(Request $request, $provider_id)
     {
-        $reviews = Rating::with('user:id,name,email')->where('provider_id', $provider_id)->take(5)->latest('id')->get();
+        $reviews = Rating::with('user:id,name,email,avatar')->where('provider_id', $provider_id)->take(5)->latest('id')->get();
         return $this->responseSuccess($reviews, 'Provider ratings retrieved successfully');
     }
     public function getProviderServices(Request $request, $provider_id)
@@ -293,8 +297,8 @@ class HomeController extends Controller
         ])
             ->where('provider_id', $provider_id)
             ->where('is_suspend', 0)
-            // ->withCount('package_ratings')
-            // ->withAvg('package_ratings', 'rating')
+        // ->withCount('package_ratings')
+        // ->withAvg('package_ratings', 'rating')
             ->get();
         $packages = $packages->transform(function ($service) {
 
@@ -304,6 +308,43 @@ class HomeController extends Controller
             return $service;
         });
         return $this->responseSuccess($packages, 'Provider package retrieved successfully');
+    }
+
+    public function homeData(Request $request)
+    {
+        $request->validate([
+            'filter' => 'required|string|in:this_week,this_month,this_year',
+        ]);
+        $data       = [];
+        $providerId = Auth::id();
+        $now        = now();
+        if ($request->filter === 'this_week') {
+            $startDate = $now->startOfWeek();
+        } elseif ($request->filter === 'this_month') {
+            $startDate = $now->startOfMonth();
+        } else {
+            $startDate = $now->startOfYear();
+        }
+
+        $totalAmount = Transaction::where('receiver_id', $providerId)
+            ->where('created_at', '>=', $startDate)
+            ->sum('amount');
+
+        $totalProfit = Transaction::where('receiver_id', $providerId)
+            ->where('created_at', '>=', $startDate)
+            ->sum('profit');
+
+
+        $totalEarnings = $totalAmount - $totalProfit;
+        $data          = [
+            'total_earnings'     => $totalEarnings,
+            'total_employee'     => Employee::where('provider_id', $providerId)->count(),
+            'new_order'          => Booking::where('provider_id', $providerId)->where('status', 'New')->count(),
+            'pending_order'      => Booking::where('provider_id', $providerId)->where('status', 'Pending')->count(),
+            'completed_order'    => Booking::where('provider_id', $providerId)->where('status', 'Completed')->count(),
+        ];
+
+        return $this->responseSuccess($data, 'Home page data retrieved successfully');
     }
 
 }

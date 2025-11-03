@@ -126,8 +126,8 @@ class BookingController extends Controller
     public function getProviderOrders(Request $request)
     {
         $request->validate([
-            'status'          => 'required|in:New,Pending,Completed',
-            'booking_process' => 'required|in:instant,schedule',
+            'status'          => 'nullable|in:New,Pending,Completed',
+            'booking_process' => 'nullable|in:instant,schedule',
         ]);
         $per_page        = $request->input('per_page', 10);
         $status          = $request->input('status');
@@ -136,8 +136,13 @@ class BookingController extends Controller
         $bookings = Booking::with('user:id,name,avatar,kyc_status')
             ->withCount('booking_items')
             ->where('provider_id', Auth::id())
-            ->where('booking_process', $booking_process)
-            ->where('status', $status)
+            ->when($booking_process,function($query) use($booking_process){
+                $query->where('booking_process', $booking_process);
+            })
+            ->when($status,function($query) use($status){
+                $query->where('status', $status);
+
+            })
             ->latest('id')
             ->paginate($per_page);
 
@@ -335,7 +340,7 @@ class BookingController extends Controller
 
             $transfer = Transfer::create([
                 'amount'      => $amount * 100,
-                'currency'    => 'usd',
+                'currency'    => 'ngn',
                 'destination' => $provider->stripe_account_id,
             ]);
 
