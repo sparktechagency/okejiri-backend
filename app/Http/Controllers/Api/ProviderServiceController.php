@@ -42,6 +42,12 @@ class ProviderServiceController extends Controller
 
     public function addMyServicePackage(AddMyServicePackageRequest $request)
     {
+        $check_already_connected = Auth::user();
+        if (! $check_already_connected ||
+            ! $check_already_connected->stripe_account_id ||
+            ! $check_already_connected->stripe_payouts_enabled) {
+            return $this->responseError(null, 'You are not connected with the app. Please create a connected account first.');
+        }
         DB::beginTransaction();
 
         try {
@@ -84,7 +90,7 @@ class ProviderServiceController extends Controller
 
             DB::commit();
 
-          return  $this->responseSuccess($package, 'Package created successfully.', 201);
+            return $this->responseSuccess($package, 'Package created successfully.', 201);
         } catch (Exception $e) {
             DB::rollBack();
             return $this->responseError($e->getMessage());
@@ -95,7 +101,7 @@ class ProviderServiceController extends Controller
     {
         $packages = Package::with(['package_detail_items' => function ($q) {
             $q->latest('id');
-        }, 'available_time'=> function ($q) {
+        }, 'available_time' => function ($q) {
             $q->latest('id');
         }])->where('id', $package_id)->first();
 
@@ -104,6 +110,12 @@ class ProviderServiceController extends Controller
 
     public function myServicePackageEdit(UpdateServicePackageRequest $request, $package_id)
     {
+        $check_already_connected = Auth::user();
+        if (! $check_already_connected ||
+            ! $check_already_connected->stripe_account_id ||
+            ! $check_already_connected->stripe_payouts_enabled) {
+            return $this->responseError(null, 'You are not connected with the app. Please create a connected account first.');
+        }
         try {
             $package        = Package::findOrFail($package_id);
             $package->title = $request->title;
@@ -151,14 +163,14 @@ class ProviderServiceController extends Controller
         }
     }
 
-      public function addServiceAvailableTime(AddServiceAvailableTimeRequest $request)
+    public function addServiceAvailableTime(AddServiceAvailableTimeRequest $request)
     {
 
         try {
             $available_time = PackageAvailableTime::create([
-                'package_id' => $request->package_id,
-                'available_time_from'       => $request->available_time_from,
-                'available_time_to'       => $request->available_time_to,
+                'package_id'          => $request->package_id,
+                'available_time_from' => $request->available_time_from,
+                'available_time_to'   => $request->available_time_to,
             ]);
             return $this->responseSuccess($available_time, 'Package available time added successfully.', 201);
         } catch (Exception $e) {
@@ -166,19 +178,19 @@ class ProviderServiceController extends Controller
         }
     }
     public function updateServiceAvailableTime(UpdateServiceAvailableTimeRequest $request, $package_id)
-{
-    try {
-        $available_time = PackageAvailableTime::findOrFail($package_id);
+    {
+        try {
+            $available_time = PackageAvailableTime::findOrFail($package_id);
 
-        $available_time->available_time_from = $request->available_time_from;
-        $available_time->available_time_to   = $request->available_time_to;
+            $available_time->available_time_from = $request->available_time_from;
+            $available_time->available_time_to   = $request->available_time_to;
 
-        $available_time->save();
+            $available_time->save();
 
-        return $this->responseSuccess($available_time, 'Package available time updated successfully.', 200);
-    } catch (\Exception $e) {
-        return $this->responseError($e->getMessage());
+            return $this->responseSuccess($available_time, 'Package available time updated successfully.', 200);
+        } catch (\Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
     }
-}
 
 }

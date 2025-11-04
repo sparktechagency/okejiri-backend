@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PageController;
+use App\Http\Controllers\Api\PayoutController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\ProviderServiceController;
@@ -44,7 +45,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::post('check-token', [AuthController::class, 'validateToken']);
     });
 
-    Route::middleware(['auth:api', 'verified.user','check.block'])->prefix('/')->group(function () {
+    Route::middleware(['auth:api', 'verified.user', 'check.block'])->prefix('/')->group(function () {
         Route::get('profile', [AuthController::class, 'getProfile']);
         Route::post('edit-profile', [AuthController::class, 'editProfile']);
         Route::post('edit-profile-picture', [AuthController::class, 'editProfilePicture']);
@@ -84,12 +85,13 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('order-reject/{booking_id}', [BookingController::class, 'orderReject']);
             Route::post('request-for-delivery/{booking_id}', [BookingController::class, 'requestForDelivery']);
 
-            Route::get('my-employee',[EmployeeController::class,'index']);
-            Route::post('add-employee',[EmployeeController::class,'store']);
-            Route::get('employee/{employee_id}',[EmployeeController::class,'show']);
-            Route::put('edit-employee/{employee_id}',[EmployeeController::class,'update']);
-            Route::post('assign-employee',[EmployeeController::class,'assignEmployee']);
+            Route::get('my-employee', [EmployeeController::class, 'index']);
+            Route::post('add-employee', [EmployeeController::class, 'store']);
+            Route::get('employee/{employee_id}', [EmployeeController::class, 'show']);
+            Route::put('edit-employee/{employee_id}', [EmployeeController::class, 'update']);
+            Route::post('assign-employee', [EmployeeController::class, 'assignEmployee']);
 
+            Route::post('withdraw', [PayoutController::class, 'withdrawRequest']);
         });
 
         // User routes
@@ -180,6 +182,13 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::get('get-disputes-details/{dispute_id}', [DisputeController::class, 'getAdminDisputeDetails']);
             Route::post('dispute-action/{dispute_id}', [DisputeController::class, 'disputeAction']);
             Route::post('dispute-mail', [DisputeController::class, 'disputeMail']);
+
+            Route::get('payout-requests', [PayoutController::class, 'payoutRequests']);
+            Route::get('payout-request/{id}', [PayoutController::class, 'payoutRequestsDetails']);
+            Route::get('previous-payouts/{provider_id}', [PayoutController::class, 'previousPayouts']);
+            Route::post('payout-rejected/{id}', [PayoutController::class, 'payoutRejected']);
+            Route::post('payout-accepted/{id}', [PayoutController::class, 'payoutAccepted']);
+            Route::post('bulk-payout-accept-reject', [PayoutController::class, 'bulkPayoutAcceptReject']);
         });
 
         // user.provider routes
@@ -220,12 +229,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::prefix('stripe')->group(function () {
             Route::prefix('connected')->group(function () {
                 Route::post('account-create', [ConnectController::class, 'createAccount']);
-                //         Route::post('account-link', [ConnectController::class, 'createAccountLink']);
-                //         Route::post('payment-intent', [ConnectController::class, 'createPaymentIntent']);
-                //         Route::post('payment-link', [ConnectController::class, 'createPaymentLink']);
-                //         Route::post('login-link', [ConnectController::class, 'createLoginLink']);
-                //         Route::get('balance', [ConnectController::class, 'getBalance']);
-                //         Route::post('payout-instant', [ConnectController::class, 'createInstantPayout']);
+                Route::get('balance', [ConnectController::class, 'getBalance']);
             });
 
             Route::prefix('payment')->group(function () {
@@ -238,6 +242,5 @@ Route::group(['middleware' => 'api'], function ($router) {
     Route::apiResource('faqs', FaqController::class)->only('index');
     Route::apiResource('services', ServiceController::class)->only('index');
     Route::apiResource('promotions', PromotionController::class)->only('index');
-    // Route::post('stripe/connected/transfer-create', [ConnectController::class, 'createTransfer']);
     Route::post('stripe/webhook', [WebhookController::class, 'handleWebhook']);
 });

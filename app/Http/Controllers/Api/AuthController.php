@@ -400,7 +400,7 @@ class AuthController extends Controller
             $this->sendMail($request->email, $otp, 'reset_password');
 
             $meta_data = ['redirect_verification' => true];
-            return $this->responseSuccess(null, 'A OTP has been sent to your email.', 200, 'success', $meta_data);
+            return $this->responseSuccess($user, 'A OTP has been sent to your email.', 200, 'success', $meta_data);
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
         }

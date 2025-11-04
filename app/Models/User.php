@@ -26,9 +26,6 @@ class User extends Authenticatable implements JWTSubject
     protected $hidden = [
         'password',
         'remember_token',
-        'stripe_charges_enabled',
-        'stripe_payouts_enabled',
-        'stripe_account_id',
         'otp_expires_at',
         'updated_at',
     ];

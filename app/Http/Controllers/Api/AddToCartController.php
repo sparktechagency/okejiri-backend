@@ -13,7 +13,7 @@ class AddToCartController extends Controller
 
     public function index()
     {
-        $cart_data = AddToCart::with('package','package.available_time')->where('user_id', Auth::id())->get();
+        $cart_data = AddToCart::with('package', 'package.available_time', 'package.service')->where('user_id', Auth::id())->get();
         return $this->responseSuccess($cart_data, 'Cart data retrieved successfully.');
     }
 
