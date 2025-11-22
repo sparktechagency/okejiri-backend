@@ -132,7 +132,6 @@ class ReportController extends Controller
             $provider   = User::findOrFail($report->provider_id);
             $type       = 'report';
 
-            // 🔸 Notification Title set করা হচ্ছে
             if ($request->action_name == 'Give a warning') {
                 $title = "Warning Regarding Your Service.";
             } elseif ($request->action_name == 'Suspend for 3 days') {
@@ -147,7 +146,6 @@ class ReportController extends Controller
                 $title = 'Your Service Has Been Permanently Suspended.';
             }
 
-            // 🔸 Action অনুযায়ী package suspend করা হচ্ছে
             foreach ($packages as $package) {
                 if ($request->action_name == 'Suspend for 3 days') {
                     $package->is_suspend     = true;

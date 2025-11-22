@@ -170,7 +170,7 @@ class BoostProfileController extends Controller
             $boosting_request->save();
             $reason  = $request->input('reason');
             $subject = 'Boosting Request Rejected';
-            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'rejected', $subject));
+            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'rejected', $subject,'boosting'));
             return $this->responseSuccess($boosting_request, 'Boosting request rejected successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -232,7 +232,7 @@ class BoostProfileController extends Controller
             $boosting_profile->delete();
             $reason  = $request->input('reason');
             $subject = ' Boosting Removed';
-            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'removed', $subject));
+            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'removed', $subject,'boosting'));
             return $this->responseSuccess($boosting_profile, 'Boosting request deleted successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());

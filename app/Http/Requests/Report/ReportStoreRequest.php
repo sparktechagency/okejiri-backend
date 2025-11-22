@@ -27,7 +27,7 @@ class ReportStoreRequest extends FormRequest
            'provider_id'=>'required|numeric',
            'report_reason'=>'required|max:255',
            'attachments'=>'sometimes|array|max:5',
-           'attachments.*'=>'image|mimes:png,jpg,jpeg|max:2048',
+           'attachments.*'=>'image|mimes:png,jpg,jpeg|max:10240',
         ];
     }
 

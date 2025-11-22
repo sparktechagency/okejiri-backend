@@ -84,7 +84,7 @@ class MessageController extends Controller
         $search = $request->search;
         $order_by = 'asc';
 
-        $messages = Message::where(function ($query) use ($userId, $receiverId) {
+        $messages = Message::with('receiver:id,name,avatar','sender:id,name,avatar')->where(function ($query) use ($userId, $receiverId) {
             $query->where(function ($q) use ($userId, $receiverId) {
                 $q->where('sender_id', $userId)
                     ->where('receiver_id', $receiverId)

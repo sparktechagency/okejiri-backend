@@ -35,7 +35,7 @@ class ProviderServiceController extends Controller
 
         $packages = Package::with(['package_detail_items' => function ($q) {
             $q->latest('id');
-        }])->where('provider_id', Auth::id())->latest('id')->paginate($per_page);
+        }])->where('provider_id', Auth::id())->where('service_id',$request->service_id)->latest('id')->paginate($per_page);
 
         return $this->responseSuccess($packages, 'My Service Packages retrieved successfully.');
     }

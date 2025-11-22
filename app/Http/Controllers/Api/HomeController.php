@@ -100,6 +100,7 @@ class HomeController extends Controller
 
     public function getPackageDetail(Request $request, $package_id)
     {
+
         $package = Package::with([
             'provider' => function ($query) {
                 $query->select('id', 'name', 'avatar', 'kyc_status', 'latitude', 'longitude')
@@ -111,9 +112,9 @@ class HomeController extends Controller
         ])->findOrFail($package_id);
 
         $user = Auth::user();
-        if (! $user || ! $user->latitude || ! $user->longitude) {
-            return $this->responseError('User location not available', 422);
-        }
+        // if (! $user || ! $user->latitude || ! $user->longitude) {
+        //     return $this->responseError('User location not available', 422);
+        // }
 
         $user_latitude  = $user->latitude;
         $user_longitude = $user->longitude;

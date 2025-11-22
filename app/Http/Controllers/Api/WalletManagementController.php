@@ -23,6 +23,9 @@ class WalletManagementController extends Controller
         $transaction->amount           = $request->deposit_amount;
         $transaction->transaction_type = 'deposit';
         $transaction->save();
+        $user=Auth::user();
+        $user->wallet_balance += $request->deposit_amount;
+        $user->save();
         return $this->responseSuccess($transaction, 'Account Deposit Successfully.');
     }
 

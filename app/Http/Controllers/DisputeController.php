@@ -70,7 +70,8 @@ class DisputeController extends Controller
     {
         $per_page = $request->input('per_page', 10);
         $disputes = Dispute::where('from_user_id', Auth::id())->latest('id')
-            ->paginate($per_page);
+            // ->paginate($per_page);
+            ->get();
 
         return $this->responseSuccess($disputes, 'Disputes retrieved successfully');
     }

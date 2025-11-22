@@ -5,7 +5,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "start": "node server.js"
+        "start": "nodemon server.js"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
@@ -17,6 +17,7 @@
     },
     "dependencies": {
         "express": "^5.1.0",
+        "nodemon": "^3.1.11",
         "socket.io": "^4.8.1"
     },
     "name": "jwt-authentication",

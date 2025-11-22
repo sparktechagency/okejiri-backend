@@ -3,12 +3,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payout\StoreWithdrawRequest;
+use App\Mail\BoostingRequestRejectMail;
 use App\Models\Payout as SystemPayout;
 use App\Notifications\WithdrawRequestPendingNotification;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Stripe\Balance;
 use Stripe\Stripe;
 
@@ -79,12 +81,15 @@ class PayoutController extends Controller
         $previousPayouts = SystemPayout::where('provider_id', $provider_id)->latest('id')->get();
         return $this->responseSuccess($previousPayouts, 'Previous payouts request retrieved successfully');
     }
-    public function payoutRejected($id)
+    public function payoutRejected(Request $request, $id)
     {
         try {
-            $payout         = SystemPayout::findOrFail($id);
+            $payout         = SystemPayout::with('provider')->findOrFail($id);
             $payout->status = 'Rejected';
             $payout->save();
+            $reason  = $request->input('reason');
+            $subject = 'Payout Request Rejected';
+            Mail::to($payout->provider->email)->send(new BoostingRequestRejectMail($payout->provider->name, $reason, 'rejected', $subject, 'payout'));
             return $this->responseSuccess($payout, 'Payouts request rejected successfully.');
         } catch (Exception $e) {
             return $this->responseError(null, $e->getMessage());
@@ -125,9 +130,10 @@ class PayoutController extends Controller
     public function bulkPayoutAcceptReject(Request $request)
     {
         $request->validate([
-            'ids'   => 'required|array|min:2',
-            'ids.*' => 'integer|exists:payouts,id',
-            'type'  => 'required|in:accepted,rejected',
+            'ids'    => 'required|array|min:2',
+            'ids.*'  => 'integer|exists:payouts,id',
+            'type'   => 'required|in:accepted,rejected',
+            'reason' => 'required_if:type,rejected',
         ]);
         try {
             $system_payouts = SystemPayout::with('provider')->whereIn('id', $request->ids)->get();
@@ -143,6 +149,9 @@ class PayoutController extends Controller
                     $payout->status = 'Successful';
                 }
                 if ($request->type == 'rejected') {
+                    $reason  = $request->input('reason');
+                    $subject = 'Payout Request Rejected';
+                    Mail::to($payout->provider->email)->send(new BoostingRequestRejectMail($payout->provider->name, $reason, 'rejected', $subject, 'payout'));
                     $payout->status = 'Rejected';
                 }
                 $payout->save();

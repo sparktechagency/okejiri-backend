@@ -25,10 +25,10 @@ class UpdateServicePackageRequest extends FormRequest
     {
         return [
             'title'               => 'required|string|max:255',
-            'image'               => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+            'image'               => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
             'price'               => 'required|numeric|min:1',
             'delivery_time'       => 'required|numeric|min:1',
-           
+
         ];
     }
 

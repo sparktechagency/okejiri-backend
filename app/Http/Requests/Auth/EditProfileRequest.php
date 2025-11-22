@@ -2,8 +2,9 @@
 
 namespace App\Http\Requests\Auth;
 
-use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class EditProfileRequest extends FormRequest
@@ -25,6 +26,7 @@ class EditProfileRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
+            'user_name'   => 'required|string|unique:users,user_name,' . Auth::id(),
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:255',
             'business_name' => 'sometimes|string|max:255',

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boosting Rejection</title>
+    <title>Rejection</title>
 </head>
 
 <body
@@ -34,7 +34,7 @@
 
                             @if ($type == 'rejected')
                                 <p style="font-size:16px; line-height:1.6; margin-bottom:16px;">
-                                    Thank you for submitting your boosting request on {{ config('app.name') }}.
+                                    Thank you for submitting your @if($mailfrom=='payout') payout   @else boosting @endif  request on {{ config('app.name') }}.
                                 </p>
                             @elseif ($type == 'removed')
                                 <p style="font-size:16px; line-height:1.6; margin-bottom:16px;">
@@ -43,7 +43,7 @@
                             @endif
                             @if ($type == 'rejected')
                                 <p style="font-size:16px; line-height:1.6; color:#d32f2f; margin-bottom:16px;">
-                                    After reviewing your request, unfortunately we’re unable to approve your boosting at
+                                    After reviewing your request, unfortunately we’re unable to approve your @if($mailfrom=='payout') payout   @else boosting @endif request at
                                     this time.
                                 </p>
                             @elseif ($type == 'removed')

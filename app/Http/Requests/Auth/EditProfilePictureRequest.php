@@ -24,7 +24,7 @@ class EditProfilePictureRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'photo' => 'required|image|mimes:png,jpg,jpeg|max:2048',
+            'photo' => 'required|image|mimes:png,jpg,jpeg|max:10240',
         ];
     }
 

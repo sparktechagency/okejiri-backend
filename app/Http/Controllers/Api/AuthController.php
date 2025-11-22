@@ -117,6 +117,9 @@ class AuthController extends Controller
                     : $this->fileuploadService->generateUserAvatar($request->name);
                 $new_user->save();
 
+                $new_user->user_name = Str::slug($request->name) . $new_user->id;
+                $new_user->save();
+
                 if ($request->referral_code) {
                     $referrer = User::where('role', $request->role)->where('referral_code', $request->referral_code)->first();
 
@@ -186,6 +189,7 @@ class AuthController extends Controller
 
     public function completePersonalization(CompletePersonalizationRequest $request, $user_id)
     {
+        // return $request;
         try {
             $user            = User::findOrFail($user_id);
             $user->phone     = $request->phone;
@@ -222,14 +226,111 @@ class AuthController extends Controller
         }
     }
 
+    // public function socialLogin(SocialLoginRequest $request)
+    // {
+
+    //     try {
+    //         $user_exists = User::where('email', $request->email)->first();
+    //         if ($user_exists->is_blocked) {
+    //             return $this->responseError(null, 'Your account has been blocked. Please contact support.', 403);
+    //         }
+    //         if ($user_exists) {
+    //             if ($user_exists->role !== $request->role) {
+    //                 return $this->responseError(null, 'You are not authorized as this role.', 403);
+    //             }
+
+    //             if ($request->role === 'PROVIDER') {
+    //                 if ($user_exists->provider_type !== $request->provider_type) {
+    //                     return $this->responseError(null, 'Provider type mismatch.', 403);
+    //                 }
+    //             }
+    //             $socialId = ($request->has('google_id') && $user_exists->google_id === $request->google_id) || ($request->has('facebook_id') && $user_exists->facebook_id === $request->facebook_id) || ($request->has('twitter_id') && $user_exists->twitter_id === $request->twitter_id) || ($request->has('apple_id') && $user_exists->apple_id === $request->apple_id);
+    //             if ($socialId) {
+    //                 $responseWithToken = $this->generateTokenResponse($user_exists);
+    //                 return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
+    //             } elseif (is_null($user_exists->google_id) && is_null($user_exists->facebook_id) && is_null($user_exists->twitter_id) && is_null($user_exists->apple_id)) {
+    //                 $meta_data = ['redirect_login' => true];
+    //                 return $this->responseSuccess(null, 'An account with this email already exists. Please sign in instead.', 200, 'success', $meta_data);
+    //             } else {
+    //                 $user_exists->update([
+    //                     'google_id' => $request->google_id ?? $user_exists->google_id,
+    //                 ]);
+    //                 $responseWithToken = $this->generateTokenResponse($user_exists);
+    //                 return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
+    //             }
+    //         }
+    //         $walletAddress                         = '0x' . bin2hex(random_bytes(20));
+    //         $new_user                              = new User();
+    //         $new_user->name                        = $request->name;
+    //         $new_user->email                       = $request->email;
+    //         $new_user->role                        = $request->role ?? 'USER';
+    //         $new_user->provider_type               = $request->provider_type ?? null;
+    //         $new_user->password                    = Hash::make(Str::random(16));
+    //         $new_user->google_id                   = $request->google_id ?? null;
+    //         $new_user->email_verified_at           = now();
+    //         $new_user->wallet_address              = $walletAddress;
+    //         $new_user->status                      = 'active';
+    //         $new_user->is_personalization_complete = false;
+    //         $new_user->is_blocked = false;
+
+    //         $new_user->avatar = $request->hasFile('photo')
+    //             ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
+    //             : $this->fileuploadService->generateUserAvatar($request->name);
+
+    //         $new_user->save();
+
+    //         $new_user->user_name = Str::slug($request->name) . $new_user->id;
+    //         $new_user->save();
+
+    //         $new_user->notify(new CompleteKYCNotification());
+
+    //         $newUserRole = Str::lower($new_user->role);
+    //         $admins      = User::where('role', 'admin')->get();
+
+    //         foreach ($admins as $admin) {
+    //             $existingNotification = $admin->unreadNotifications()
+    //                 ->where('type', NewRegistrationNotification::class)
+    //                 ->where('data->type', $newUserRole)
+    //                 ->first();
+
+    //             if ($existingNotification) {
+    //                 $data = $existingNotification->data;
+    //                 $data['count'] += 1;
+
+    //                 if ($data['count'] > 9) {
+    //                     $data['title'] = "9+ new {$newUserRole}s registered.";
+    //                 } else {
+    //                     $data['title'] = "{$data['count']} new {$newUserRole} registered.";
+    //                 }
+
+    //                 $existingNotification->update([
+    //                     'data' => $data,
+    //                 ]);
+    //             } else {
+    //                 $count   = 1;
+    //                 $message = "{$count} new {$newUserRole} registered.";
+    //                 $admin->notify(new NewRegistrationNotification($count, $message, $newUserRole));
+    //             }
+    //         }
+
+    //         $responseWithToken = $this->generateTokenResponse($new_user);
+    //         return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
+    //     } catch (Exception $e) {
+    //         return $this->responseError($e->getMessage(), 'An error occurred while registering the user.');
+    //     }
+    // }
+
     public function socialLogin(SocialLoginRequest $request)
     {
         try {
             $user_exists = User::where('email', $request->email)->first();
-            if ($user_exists->is_blocked) {
-                return $this->responseError(null, 'Your account has been blocked. Please contact support.', 403);
-            }
+
             if ($user_exists) {
+
+                if ($user_exists->is_blocked) {
+                    return $this->responseError(null, 'Your account has been blocked. Please contact support.', 403);
+                }
+
                 if ($user_exists->role !== $request->role) {
                     return $this->responseError(null, 'You are not authorized as this role.', 403);
                 }
@@ -239,22 +340,36 @@ class AuthController extends Controller
                         return $this->responseError(null, 'Provider type mismatch.', 403);
                     }
                 }
-                $socialId = ($request->has('google_id') && $user_exists->google_id === $request->google_id) || ($request->has('facebook_id') && $user_exists->facebook_id === $request->facebook_id) || ($request->has('twitter_id') && $user_exists->twitter_id === $request->twitter_id) || ($request->has('apple_id') && $user_exists->apple_id === $request->apple_id);
+
+                $socialId =
+                    ($request->has('google_id') && $user_exists->google_id === $request->google_id) ||
+                    ($request->has('facebook_id') && $user_exists->facebook_id === $request->facebook_id) ||
+                    ($request->has('twitter_id') && $user_exists->twitter_id === $request->twitter_id) ||
+                    ($request->has('apple_id') && $user_exists->apple_id === $request->apple_id);
+
                 if ($socialId) {
                     $responseWithToken = $this->generateTokenResponse($user_exists);
                     return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
-                } elseif (is_null($user_exists->google_id) && is_null($user_exists->facebook_id) && is_null($user_exists->twitter_id) && is_null($user_exists->apple_id)) {
+                } elseif (
+                    is_null($user_exists->google_id) &&
+                    is_null($user_exists->facebook_id) &&
+                    is_null($user_exists->twitter_id) &&
+                    is_null($user_exists->apple_id)
+                ) {
                     $meta_data = ['redirect_login' => true];
                     return $this->responseSuccess(null, 'An account with this email already exists. Please sign in instead.', 200, 'success', $meta_data);
                 } else {
                     $user_exists->update([
                         'google_id' => $request->google_id ?? $user_exists->google_id,
                     ]);
+
                     $responseWithToken = $this->generateTokenResponse($user_exists);
                     return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
                 }
             }
-            $walletAddress                         = '0x' . bin2hex(random_bytes(20));
+
+            $walletAddress = '0x' . bin2hex(random_bytes(20));
+
             $new_user                              = new User();
             $new_user->name                        = $request->name;
             $new_user->email                       = $request->email;
@@ -266,12 +381,18 @@ class AuthController extends Controller
             $new_user->wallet_address              = $walletAddress;
             $new_user->status                      = 'active';
             $new_user->is_personalization_complete = false;
+            $new_user->is_blocked                  = false;
+            $new_user->referral_code               = rand(100000, 999999);
 
             $new_user->avatar = $request->hasFile('photo')
                 ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
                 : $this->fileuploadService->generateUserAvatar($request->name);
 
             $new_user->save();
+
+            $new_user->user_name = Str::slug($request->name) . $new_user->id;
+            $new_user->save();
+
             $new_user->notify(new CompleteKYCNotification());
 
             $newUserRole = Str::lower($new_user->role);
@@ -305,6 +426,7 @@ class AuthController extends Controller
 
             $responseWithToken = $this->generateTokenResponse($new_user);
             return $this->responseSuccess($responseWithToken, 'You have successfully logged in.');
+
         } catch (Exception $e) {
             return $this->responseError($e->getMessage(), 'An error occurred while registering the user.');
         }
@@ -448,12 +570,15 @@ class AuthController extends Controller
                 }
             }
         } else {
-            $user->name    = $request->name ?? $user->name;
-            $user->phone   = $request->phone ?? $user->phone;
-            $user->address = $request->address ?? $user->address;
-            $user->about   = $request->about ?? $user->about;
+            $user->name      = $request->name ?? $user->name;
+            $user->user_name = $request->user_name ?? $user->user_name;
+            $user->phone     = $request->phone ?? $user->phone;
+            $user->address   = $request->address ?? $user->address;
+            $user->about     = $request->about ?? $user->about;
             $user->save();
         }
+        $user->user_name = $request->user_name ?? $user->user_name;
+        $user->save();
         return $this->responseSuccess($user, 'User profile updated successfully.');
     }
 

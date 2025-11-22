@@ -24,8 +24,8 @@ class CreateAccountRequest extends FormRequest
     {
         return [
             'country'     => 'required|string|size:2',
-            'refresh_url' => 'required|url',
-            'return_url'  => 'required|url',
+            'refresh_url' => 'required',
+            'return_url'  => 'required',
         ];
     }
 

@@ -37,9 +37,9 @@ class ConnectController extends Controller
     {
         try {
             $user = Auth::user();
-            if ($user->stripe_account_id) {
-                return $this->responseError(null, 'You already have a Stripe account. Use the existing one.', 422);
-            }
+            // if ($user->stripe_account_id) {
+            //     return $this->responseError(null, 'You already have a Stripe account. Use the existing one.', 422);
+            // }
             $account = Account::create([
                 'type'          => 'express',
                 'country'       => $request->country,

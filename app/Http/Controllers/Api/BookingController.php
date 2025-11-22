@@ -338,11 +338,11 @@ class BookingController extends Controller
                 return $this->responseError(null, 'Invalid transfer amount.', 400);
             }
 
-            $transfer = Transfer::create([
-                'amount'      => $amount * 100,
-                'currency'    => 'ngn',
-                'destination' => $provider->stripe_account_id,
-            ]);
+            // $transfer = Transfer::create([
+            //     'amount'      => $amount * 100,
+            //     'currency'    => 'ngn',
+            //     'destination' => $provider->stripe_account_id,
+            // ]);
 
             $booking->status = 'Completed';
             $booking->save();

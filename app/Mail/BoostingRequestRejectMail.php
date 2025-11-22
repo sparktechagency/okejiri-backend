@@ -16,12 +16,13 @@ class BoostingRequestRejectMail extends Mailable implements ShouldQueue
      * Create a new message instance.
      */
 
-    public $name, $reason, $type, $subject;
-    public function __construct($name, $reason, $type, $subject)
+    public $name, $reason, $type, $subject,$mailfrom;
+    public function __construct($name, $reason, $type, $subject,$mailfrom)
     {
         $this->name    = $name;
         $this->reason  = $reason;
         $this->type    = $type;
+        $this->mailfrom = $mailfrom;
         $this->subject = $subject;
     }
 

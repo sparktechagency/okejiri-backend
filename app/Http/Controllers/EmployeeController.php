@@ -82,6 +82,18 @@ class EmployeeController extends Controller
         }
     }
 
+    public function delete($employee_id)
+    {
+        try {
+            $employee = Employee::findOrFail($employee_id);
+    
+            $employee->delete();
+            return $this->responseSuccess($employee, 'Employee deleted successfully');
+        } catch (Exception $e) {
+            return $this->responseError(null, $e->getMessage());
+        }
+    }
+
     public function assignEmployee(AssignEmployeeRequest $request)
     {
         try {
