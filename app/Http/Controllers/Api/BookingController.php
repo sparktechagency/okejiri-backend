@@ -1,36 +1,36 @@
 <?php
 namespace App\Http\Controllers\Api;
 
-use Exception;
-use Stripe\Refund;
-use Stripe\Stripe;
-use App\Models\User;
-use Stripe\Transfer;
-use App\Models\Booking;
-use App\Models\Setting;
-use App\Models\AddToCart;
-use Stripe\PaymentIntent;
-use App\Models\BookingItem;
-use App\Models\Transaction;
-use App\Traits\ApiResponse;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use App\Models\BillingDetail;
-use App\Models\ExtendDeliveryTime;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use App\Notifications\NewOrderNotification;
-use App\Notifications\OrderCancelNotification;
-use App\Notifications\OrderRejectNotification;
-use App\Notifications\OrderApprovedNotification;
 use App\Http\Requests\Booking\BookingStoreRequest;
-use App\Notifications\ExtendDeliveryTimeNotification;
-use App\Notifications\DeliveryRequestSentNotification;
 use App\Http\Requests\Rating\ExtendDeliveryStoreRequest;
+use App\Models\AddToCart;
+use App\Models\BillingDetail;
+use App\Models\Booking;
+use App\Models\BookingItem;
+use App\Models\ExtendDeliveryTime;
+use App\Models\Message;
+use App\Models\Setting;
+use App\Models\Transaction;
+use App\Models\User;
 use App\Notifications\DeliveryRequestAcceptDeclineRequest;
+use App\Notifications\DeliveryRequestSentNotification;
 use App\Notifications\ExtendDeliveryTimeAcceptNotification;
 use App\Notifications\ExtendDeliveryTimeDeclineNotification;
+use App\Notifications\ExtendDeliveryTimeNotification;
+use App\Notifications\NewOrderNotification;
+use App\Notifications\OrderApprovedNotification;
+use App\Notifications\OrderCancelNotification;
+use App\Notifications\OrderRejectNotification;
+use App\Traits\ApiResponse;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Stripe\PaymentIntent;
+use Stripe\Refund;
+use Stripe\Stripe;
 
 class BookingController extends Controller
 {
@@ -136,10 +136,10 @@ class BookingController extends Controller
         $bookings = Booking::with('user:id,name,avatar,kyc_status')
             ->withCount('booking_items')
             ->where('provider_id', Auth::id())
-            ->when($booking_process,function($query) use($booking_process){
+            ->when($booking_process, function ($query) use ($booking_process) {
                 $query->where('booking_process', $booking_process);
             })
-            ->when($status,function($query) use($status){
+            ->when($status, function ($query) use ($status) {
                 $query->where('status', $status);
 
             })
@@ -337,6 +337,17 @@ class BookingController extends Controller
             if ($amount <= 0) {
                 return $this->responseError(null, 'Invalid transfer amount.', 400);
             }
+            $user_id     = $booking->user_id;
+            $provider_id = $booking->provider_id;
+            Message::where(function ($q) use ($user_id, $provider_id) {
+                $q->where('sender_id', $user_id)
+                    ->where('receiver_id', $provider_id);
+            })
+                ->orWhere(function ($q) use ($user_id, $provider_id) {
+                    $q->where('sender_id', $provider_id)
+                        ->where('receiver_id', $user_id);
+                })
+                ->delete();
 
             // $transfer = Transfer::create([
             //     'amount'      => $amount * 100,
@@ -346,6 +357,7 @@ class BookingController extends Controller
 
             $booking->status = 'Completed';
             $booking->save();
+
             $provider          = User::findOrFail($booking->provider_id);
             $user              = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
             $notification_data = [
@@ -417,7 +429,7 @@ class BookingController extends Controller
 
     public function orderCancel(Request $request, $order_id)
     {
-        if(Auth::user()->role == 'ADMIN'){
+        if (Auth::user()->role == 'ADMIN') {
             $request->validate([
                 'reason' => 'required|string|max:1000',
             ]);
@@ -457,9 +469,9 @@ class BookingController extends Controller
 
             DB::commit();
 
-            if($request->reason){
-             $booking->user->notify(new OrderCancelNotification($request->reason,$booking->id));
-             $booking->provider->notify(new OrderCancelNotification($request->reason,$booking->id));
+            if ($request->reason) {
+                $booking->user->notify(new OrderCancelNotification($request->reason, $booking->id));
+                $booking->provider->notify(new OrderCancelNotification($request->reason, $booking->id));
             }
             return $this->responseSuccess($booking, 'Order cancelled successfully.');
 

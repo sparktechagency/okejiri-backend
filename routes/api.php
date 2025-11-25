@@ -89,7 +89,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('add-employee', [EmployeeController::class, 'store']);
             Route::get('employee/{employee_id}', [EmployeeController::class, 'show']);
             Route::put('edit-employee/{employee_id}', [EmployeeController::class, 'update']);
-            Route::delete('delete-employee/{employee_id}', [EmployeeController::class, 'delete-employee']);
+            Route::delete('delete-employee/{employee_id}', [EmployeeController::class, 'delete']);
             Route::post('assign-employee', [EmployeeController::class, 'assignEmployee']);
 
             Route::post('withdraw', [PayoutController::class, 'withdrawRequest']);

@@ -26,7 +26,7 @@ class EditProfileRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'user_name'   => 'required|string|unique:users,user_name,' . Auth::id(),
+            'user_name'   => 'nullable|string|unique:users,user_name,' . Auth::id(),
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:255',
             'business_name' => 'sometimes|string|max:255',

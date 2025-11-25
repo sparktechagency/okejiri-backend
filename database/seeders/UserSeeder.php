@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
             $id_card_front = $fileUpload->setPath('placeholders/users/kyc/id_card_front')->generatePlaceholderImage();
             $id_card_back  = $fileUpload->setPath('placeholders/users/kyc/id_card_back')->generatePlaceholderImage();
             $selfie        = $fileUpload->setPath('placeholders/users/kyc/selfie')->generatePlaceholderImage(512, 512);
-            $walletAddress = '0x' . bin2hex(random_bytes(20));
+            $walletAddress = 'ACC-' . substr(md5(uniqid()), 0, 20);
             User::create([
                 'name'  => "System User $i",
                 'email' => "user{$i}@gmail.com",

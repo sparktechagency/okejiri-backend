@@ -110,6 +110,7 @@ class ProviderServiceController extends Controller
 
     public function myServicePackageEdit(UpdateServicePackageRequest $request, $package_id)
     {
+
         $check_already_connected = Auth::user();
         if (! $check_already_connected ||
             ! $check_already_connected->stripe_account_id ||
@@ -119,14 +120,17 @@ class ProviderServiceController extends Controller
         try {
             $package        = Package::findOrFail($package_id);
             $package->title = $request->title;
-            $package->image = $this->fileuploadService->updateOptimizedImage(
-                $request->file('image'),
-                $package->image,
-                40,
-                1320,
-                null,
-                true
-            );
+            if($request->hasFile('image')){
+                $image = $this->fileuploadService->updateOptimizedImage(
+                    $request->file('image'),
+                    $package->image,
+                    40,
+                    1320,
+                    null,
+                    true
+                );
+                $package->image = $image;
+            }
             $package->price         = $request->price;
             $package->delivery_time = $request->delivery_time;
             $package->save();
