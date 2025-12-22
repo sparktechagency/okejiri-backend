@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\WalletManagementController;
 use App\Http\Controllers\BoostProfileController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\FlutterwavePaymentController;
 use App\Http\Controllers\ProviderPortfolioController;
 use Illuminate\Support\Facades\Route;
 
@@ -236,6 +237,14 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::prefix('payment')->group(function () {
                 Route::post('payment-intent', [PaymentController::class, 'createPaymentIntent']);
             });
+        });
+    });
+    Route::prefix('flutterwave')->group(function () {
+        Route::get('get-banks', [FlutterwavePaymentController::class, 'getBanks']);
+        Route::middleware('auth')->group(function () {
+            Route::post('create-sub-account', [FlutterwavePaymentController::class, 'createSubAccount']);
+            Route::post('verify-payment', [FlutterwavePaymentController::class, 'verifyPayment']);
+
         });
     });
     Route::get('get-settings', [SettingController::class, 'getSettings']);

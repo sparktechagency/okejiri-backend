@@ -11,16 +11,15 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use Stripe\PaymentIntent;
-use Stripe\Refund;
-use Stripe\Stripe;
 
 class BoostProfileController extends Controller
 {
     use ApiResponse;
 
-    public function boostMyProfile(StoreBoostProfileRequest $request)
+        public function boostMyProfile(StoreBoostProfileRequest $request)
     {
         $user = Auth::user();
         if ($request->payment_method === 'referral_balance') {
@@ -30,15 +29,32 @@ class BoostProfileController extends Controller
             }
             $user->referral_balance -= $request->payment_amount;
             $user->save();
-        }
+            $boost_profile = BoostProfileRequest::create([
+                'provider_id'       => $user->id,
+                'number_of_days'    => $request->number_of_days,
+                'payment_method'    => $request->payment_method,
+                'payment_amount'    => $request->payment_amount,
+                'payment_intent_id' => $request->payment_intent_id,
+            ]);
+        } elseif ($request->payment_method === 'flutterwave') {
+            $transactionId = $request->payment_intent_id;
+            $response      = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
+                ->get("https://api.flutterwave.com/v3/transactions/{$transactionId}/verify");
+            $result = $response->json();
 
-        $boost_profile = BoostProfileRequest::create([
-            'provider_id'       => $user->id,
-            'number_of_days'    => $request->number_of_days,
-            'payment_method'    => $request->payment_method,
-            'payment_amount'    => $request->payment_amount,
-            'payment_intent_id' => $request->payment_intent_id,
-        ]);
+            if ($result['status'] === 'success' && $result['data']['status'] === 'successful') {
+                $amountPaid    = $result['data']['amount'];
+                $boost_profile = BoostProfileRequest::create([
+                    'provider_id'       => $user->id,
+                    'number_of_days'    => $request->number_of_days,
+                    'payment_method'    => $request->payment_method,
+                    'payment_amount'    => $amountPaid,
+                    'payment_intent_id' => $result['data']['id'],
+                ]);
+            } else {
+                return $this->responseError(null, 'Payment failed.');
+            }
+        }
         return $this->responseSuccess($boost_profile,
             'Boost request submitted successfully.',
         );
@@ -138,41 +154,114 @@ class BoostProfileController extends Controller
             return $this->responseError($e->getMessage());
         }
     }
+    // public function rejectBoostingRequest(Request $request, $request_id)
+    // {
+    //     $request->validate([
+    //         'reason' => 'required|string',
+    //     ]);
+    //     try {
+    //         $boosting_request = BoostProfileRequest::findOrFail($request_id);
+    //         if (in_array($boosting_request->status, ['reject', 'accept'])) {
+    //             return $this->responseError(null, 'This Boosting request is already accepted or rejected.');
+    //         }
+
+    //         if ($boosting_request->payment_method == 'referral_balance') {
+    //             $provider = User::find($boosting_request->provider_id);
+    //             $provider->referral_balance += $boosting_request->payment_amount;
+    //             $provider->save();
+
+    //             $boosting_request->status = 'reject';
+    //             $boosting_request->save();
+    //             $reason  = $request->input('reason');
+    //             $subject = 'Boosting Request Rejected';
+    //             Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'rejected', $subject, 'boosting'));
+    //             return $this->responseSuccess($boosting_request, 'Boosting request rejected successfully.');
+    //         } elseif ($boosting_request->payment_method == 'flutterwave') {
+    //             $transactionId = $boosting_request->payment_intent_id;
+    //             $response      = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
+    //                 ->post("https://api.flutterwave.com/v3/transactions/{$transactionId}/refund");
+    //             $result = $response->json();
+    //             if ($result['status'] === 'success') {
+    //                 $boosting_request->status = 'reject';
+    //                 $boosting_request->save();
+    //                 $reason  = $request->input('reason');
+    //                 $subject = 'Boosting Request Rejected';
+    //                 Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'rejected', $subject, 'boosting'));
+    //                 return $this->responseSuccess($boosting_request, 'Boosting request rejected successfully.');
+    //             }
+    //         }
+
+    //     } catch (Exception $e) {
+    //         return $this->responseError($e->getMessage());
+    //     }
+    // }
+
     public function rejectBoostingRequest(Request $request, $request_id)
     {
         $request->validate([
             'reason' => 'required|string',
         ]);
+
         try {
+            DB::beginTransaction();
+
             $boosting_request = BoostProfileRequest::findOrFail($request_id);
+
             if (in_array($boosting_request->status, ['reject', 'accept'])) {
-                return $this->responseError(null, 'This Boosting request is already accepted or rejected.');
+                return $this->responseError(null, 'This boosting request is already processed.');
             }
 
-            if ($boosting_request->payment_method == 'referral_balance') {
-                $provider = User::find($boosting_request->provider_id);
-                $provider->referral_balance += $boosting_request->payment_amount;
-                $provider->save();
-            } elseif ($boosting_request->payment_method == 'stripe') {
-                Stripe::setApiKey(config('services.stripe.secret'));
+            $provider = User::findOrFail($boosting_request->provider_id);
 
-                $intent   = PaymentIntent::retrieve($boosting_request->payment_intent_id);
-                $chargeId = $intent->latest_charge;
+            if ($boosting_request->payment_method === 'referral_balance') {
 
-                if (! $chargeId) {
-                    return $this->responseError(null, 'Could not find any charge information for this payment.');
+                $provider->increment('referral_balance', $boosting_request->payment_amount);
+
+            } elseif ($boosting_request->payment_method === 'flutterwave') {
+
+                $transactionId = $boosting_request->payment_intent_id;
+
+                $response = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
+                    ->post("https://api.flutterwave.com/v3/transactions/{$transactionId}/refund");
+
+                if (! $response->successful()) {
+                    DB::rollBack();
+                    return $this->responseError(null, 'Unable to process refund.');
                 }
-                $refund = Refund::create([
-                    'charge' => $chargeId,
-                ]);
+
+                $result = $response->json();
+
+                if ($result['status'] !== 'success') {
+                    DB::rollBack();
+                    return $this->responseError(null, 'Refund failed.');
+                }
             }
-            $boosting_request->status = 'reject';
-            $boosting_request->save();
+
+            $boosting_request->update([
+                'status' => 'reject',
+            ]);
+
+            DB::commit();
+
             $reason  = $request->input('reason');
             $subject = 'Boosting Request Rejected';
-            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'rejected', $subject,'boosting'));
-            return $this->responseSuccess($boosting_request, 'Boosting request rejected successfully.');
+
+            Mail::to($provider->email)
+                ->send(new BoostingRequestRejectMail(
+                    $provider->name,
+                    $reason,
+                    'rejected',
+                    $subject,
+                    'boosting'
+                ));
+
+            return $this->responseSuccess(
+                $boosting_request,
+                'Boosting request rejected successfully.'
+            );
+
         } catch (Exception $e) {
+            DB::rollBack();
             return $this->responseError($e->getMessage());
         }
     }
@@ -232,7 +321,7 @@ class BoostProfileController extends Controller
             $boosting_profile->delete();
             $reason  = $request->input('reason');
             $subject = ' Boosting Removed';
-            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'removed', $subject,'boosting'));
+            Mail::to($provider->email)->send(new BoostingRequestRejectMail($provider->name, $reason, 'removed', $subject, 'boosting'));
             return $this->responseSuccess($boosting_profile, 'Boosting request deleted successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());

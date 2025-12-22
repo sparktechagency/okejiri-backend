@@ -27,6 +27,8 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'remember_token',
         'otp_expires_at',
+        'stripe_charges_enabled',
+        'stripe_payouts_enabled',
         'updated_at',
     ];
 
@@ -185,7 +187,7 @@ class User extends Authenticatable implements JWTSubject
     }
     public function provider_services()
     {
-        return $this->hasMany(ProviderService::class, 'provider_id','id');
+        return $this->hasMany(ProviderService::class, 'provider_id', 'id');
     }
     public function ratings()
     {
@@ -197,7 +199,8 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(AddToCart::class);
     }
 
-    public function employees(){
+    public function employees()
+    {
         return $this->hasMany(Employee::class);
     }
 

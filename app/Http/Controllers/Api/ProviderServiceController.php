@@ -44,8 +44,7 @@ class ProviderServiceController extends Controller
     {
         $check_already_connected = Auth::user();
         if (! $check_already_connected ||
-            ! $check_already_connected->stripe_account_id ||
-            ! $check_already_connected->stripe_payouts_enabled) {
+            ! $check_already_connected->sub_account_id) {
             return $this->responseError(null, 'You are not connected with the app. Please create a connected account first.');
         }
         DB::beginTransaction();
@@ -113,8 +112,7 @@ class ProviderServiceController extends Controller
 
         $check_already_connected = Auth::user();
         if (! $check_already_connected ||
-            ! $check_already_connected->stripe_account_id ||
-            ! $check_already_connected->stripe_payouts_enabled) {
+            ! $check_already_connected->sub_account_id) {
             return $this->responseError(null, 'You are not connected with the app. Please create a connected account first.');
         }
         try {

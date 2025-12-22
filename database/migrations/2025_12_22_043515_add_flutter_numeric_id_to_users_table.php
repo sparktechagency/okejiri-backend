@@ -10,14 +10,11 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::table('users', function (Blueprint $table) {
-        if (!Schema::hasColumn('users', 'user_name')) {
-            $table->string('user_name')->nullable()->after('name');
-        }
-    });
-}
-
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('flutter_numeric_id')->nullable()->after('sub_account_id');
+        });
+    }
 
     /**
      * Reverse the migrations.
@@ -25,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            $table->dropColumn('flutter_numeric_id');
         });
     }
 };

@@ -27,10 +27,8 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Stripe\PaymentIntent;
-use Stripe\Refund;
-use Stripe\Stripe;
 
 class BookingController extends Controller
 {
@@ -67,23 +65,67 @@ class BookingController extends Controller
 
                 $user->wallet_balance -= $request->price;
                 $user->save();
-            }
+                $booking = Booking::create([
+                    'user_id'            => Auth::id(),
+                    'provider_id'        => $request->provider_id,
+                    'package_id'         => null,
+                    'booking_process'    => $request->booking_process,
+                    'booking_type'       => $request->booking_type,
+                    'schedule_date'      => $request->schedule_date,
+                    'schedule_time_slot' => $request->schedule_time_slot,
+                    'price'              => $request->price,
+                    'number_of_people'   => $request->number_of_people,
+                    'payment_type'       => $request->payment_type,
+                    'payment_intent_id'  => $request->payment_intent_id,
+                    'order_id'           => 'ORD-' . Str::upper(Str::random(10)),
+                    'status'             => 'New',
+                ]);
+                Transaction::create([
+                    'booking_id'       => $booking->id,
+                    'sender_id'        => $booking->user_id,
+                    // 'receiver_id'      => $booking->provider_id,
+                    'amount'           => $request->price,
+                    'transaction_type' => 'purchase',
+                    'profit'           => ($request->price * $profit) / 100,
+                ]);
+            } elseif ($request->payment_type === 'make_payment') {
+                $transactionId = $request->payment_intent_id;
 
-            $booking = Booking::create([
-                'user_id'            => Auth::id(),
-                'provider_id'        => $request->provider_id,
-                'package_id'         => null,
-                'booking_process'    => $request->booking_process,
-                'booking_type'       => $request->booking_type,
-                'schedule_date'      => $request->schedule_date,
-                'schedule_time_slot' => $request->schedule_time_slot,
-                'price'              => $request->price,
-                'number_of_people'   => $request->number_of_people,
-                'payment_type'       => $request->payment_type,
-                'payment_intent_id'  => $request->payment_intent_id,
-                'order_id'           => 'ORD-' . Str::upper(Str::random(10)),
-                'status'             => 'New',
-            ]);
+                $response = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
+                    ->get("https://api.flutterwave.com/v3/transactions/{$transactionId}/verify");
+                $result = $response->json();
+
+                if ($result['status'] === 'success' && $result['data']['status'] === 'successful') {
+
+                    $amountPaid = $result['data']['amount'];
+                    $commission = round(($amountPaid * $profit) / 100, 2);
+                    $booking    = Booking::create([
+                        'user_id'            => Auth::id(),
+                        'provider_id'        => $request->provider_id,
+                        'package_id'         => null,
+                        'booking_process'    => $request->booking_process,
+                        'booking_type'       => $request->booking_type,
+                        'schedule_date'      => $request->schedule_date,
+                        'schedule_time_slot' => $request->schedule_time_slot,
+                        'price'              => $amountPaid,
+                        'number_of_people'   => $request->number_of_people,
+                        'payment_type'       => $request->payment_type,
+                        'payment_intent_id'  => $result['data']['id'],
+                        'order_id'           => 'ORD-' . Str::upper(Str::random(10)),
+                        'status'             => 'New',
+                    ]);
+                    Transaction::create([
+                        'booking_id'       => $booking->id,
+                        'sender_id'        => $booking->user_id,
+                        // 'receiver_id'      => $booking->provider_id,
+                        'amount'           => $request->price,
+                        'transaction_type' => 'purchase',
+                        'profit'           => $commission,
+                    ]);
+                } else {
+                    return response()->json(['status' => 'error', 'message' => 'Payment failed'], 400);
+                }
+            }
 
             BillingDetail::create([
                 'booking_id' => $booking->id,
@@ -91,15 +133,6 @@ class BookingController extends Controller
                 'email'      => $request->email,
                 'phone'      => $request->phone,
                 'location'   => $request->address,
-            ]);
-
-            Transaction::create([
-                'booking_id'       => $booking->id,
-                'sender_id'        => $booking->user_id,
-                'receiver_id'      => $booking->provider_id,
-                'amount'           => $request->price,
-                'transaction_type' => 'purchase',
-                'profit'           => ($request->price * $profit) / 100,
             ]);
 
             $cartItems = AddToCart::where('user_id', Auth::id())->get();
@@ -260,19 +293,23 @@ class BookingController extends Controller
                 $user->wallet_balance += $booking->price;
                 $user->save();
             } elseif ($booking->payment_type == 'make_payment') {
-                Stripe::setApiKey(config('services.stripe.secret'));
 
-                $intent   = PaymentIntent::retrieve($booking->payment_intent_id);
-                $chargeId = $intent->latest_charge;
+                $transactionId = $booking->payment_intent_id;
+                $response      = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
+                    ->post("https://api.flutterwave.com/v3/transactions/{$transactionId}/refund");
 
-                if (! $chargeId) {
-                    return $this->responseError(null, 'Could not find any charge information for this payment.');
+                $result = $response->json();
+
+                if ($result['status'] !== 'success') {
+                    return $this->responseError(null, 'Refund failed.');
                 }
-                $refund = Refund::create([
-                    'charge' => $chargeId,
-                ]);
+
                 if ($booking->transaction) {
-                    $booking->transaction->delete();
+                             $booking->transaction->update([
+                    'receiver_id'      => null,
+                    'transaction_type' => 'refund',
+                    'profit'           => null,
+                ]);
                 }
             }
             $booking->status = 'Reject';
@@ -321,17 +358,16 @@ class BookingController extends Controller
     public function acceptDeliveryRequest($booking_id)
     {
         try {
-            Stripe::setApiKey(config('services.stripe.secret'));
             $booking = Booking::with('transaction')->findOrFail($booking_id);
             if ($booking->status === 'Completed') {
-                return $this->responseSuccess($booking, 'Booking already completed and payment already transferred.', 200);
+                return $this->responseSuccess($booking, 'Booking already completed.', 200);
             }
             if (! $booking->transaction) {
                 return $this->responseError(null, 'No transaction found for this booking.', 404);
             }
             $provider = $booking->provider;
-            if (! $provider || ! $provider->stripe_account_id) {
-                return $this->responseError(null, 'Provider has no connected Stripe account.', 400);
+            if (! $provider || ! $provider->sub_account_id) {
+                return $this->responseError(null, 'Provider has not provided any account information.', 400);
             }
             $amount = $booking->transaction->amount - $booking->transaction->profit;
             if ($amount <= 0) {
@@ -349,11 +385,12 @@ class BookingController extends Controller
                 })
                 ->delete();
 
-            // $transfer = Transfer::create([
-            //     'amount'      => $amount * 100,
-            //     'currency'    => 'ngn',
-            //     'destination' => $provider->stripe_account_id,
-            // ]);
+            $provider->wallet_balance += $amount;
+            $provider->save();
+
+            $booking->transaction->update([
+                'receiver_id' => $provider_id,
+            ]);
 
             $booking->status = 'Completed';
             $booking->save();
@@ -448,18 +485,16 @@ class BookingController extends Controller
                 $user->wallet_balance += $booking->price;
                 $user->save();
             } elseif ($booking->payment_type == 'make_payment') {
-                Stripe::setApiKey(config('services.stripe.secret'));
 
-                $intent   = PaymentIntent::retrieve($booking->payment_intent_id);
-                $chargeId = $intent->latest_charge;
+                $transactionId = $booking->payment_intent_id;
+                $response      = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
+                    ->post("https://api.flutterwave.com/v3/transactions/{$transactionId}/refund");
 
-                if (! $chargeId) {
-                    return $this->responseError(null, 'Could not find any charge information for this payment.');
+                $result = $response->json();
+                if ($result['status'] !== 'success') {
+                    return $this->responseError(null, 'Already refunded.');
                 }
 
-                $refund = Refund::create([
-                    'charge' => $chargeId,
-                ]);
             } else {
                 return $this->responseError(null, 'Invalid payment type.');
             }
@@ -467,6 +502,15 @@ class BookingController extends Controller
             $booking->status = 'Cancelled';
             $booking->save();
 
+            $transaction = Transaction::where('booking_id', $booking->id)->first();
+
+            if ($transaction) {
+                $transaction->update([
+                    'receiver_id'      => null,
+                    'transaction_type' => 'refund',
+                    'profit'           => null,
+                ]);
+            }
             DB::commit();
 
             if ($request->reason) {

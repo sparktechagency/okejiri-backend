@@ -13,11 +13,8 @@ use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use Stripe\PaymentIntent;
-use Stripe\Refund;
-use Stripe\Stripe;
-use Stripe\Transfer;
 
 class DisputeController extends Controller
 {
@@ -70,7 +67,7 @@ class DisputeController extends Controller
     {
         $per_page = $request->input('per_page', 10);
         $disputes = Dispute::where('from_user_id', Auth::id())->latest('id')
-            // ->paginate($per_page);
+        // ->paginate($per_page);
             ->get();
 
         return $this->responseSuccess($disputes, 'Disputes retrieved successfully');
@@ -181,27 +178,31 @@ class DisputeController extends Controller
                     $user = $dispute->booking->user;
                     $user->wallet_balance += $dispute->booking->price;
                     $user->save();
+                    $dispute->booking->status = 'Cancelled';
+                    $dispute->booking->save();
+                    $dispute->status = 'Resolved';
+                    $dispute->save();
                 } elseif ($dispute->booking->payment_type == 'make_payment') {
-                    Stripe::setApiKey(config('services.stripe.secret'));
+                    $transactionId = $dispute->booking->payment_intent_id;
+                    $response      = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
+                        ->post("https://api.flutterwave.com/v3/transactions/{$transactionId}/refund");
 
-                    $intent   = PaymentIntent::retrieve($dispute->booking->payment_intent_id);
-                    $chargeId = $intent->latest_charge;
-
-                    if (! $chargeId) {
-                        return $this->responseError(null, 'Could not find any charge information for this payment.');
+                    $result = $response->json();
+                    if ($result['status'] === 'success') {
+                        $dispute->booking->status = 'Cancelled';
+                        $dispute->booking->save();
+                        $dispute->status = 'Resolved';
+                        $dispute->save();
                     }
-
-                    $refund = Refund::create([
-                        'charge' => $chargeId,
+                }
+                if ($dispute->booking->transaction) {
+                    $dispute->booking->transaction->update([
+                        'receiver_id'      => null,
+                        'transaction_type' => 'refund',
+                        'profit'           => null,
                     ]);
                 }
-                $dispute->booking->status = 'Cancelled';
-                $dispute->booking->save();
-                $dispute->status = 'Resolved';
-                $dispute->save();
-
             } elseif ($request->action == 'pay_provider') {
-                Stripe::setApiKey(config('services.stripe.secret'));
                 if ($dispute->booking->status === 'Completed') {
                     return $this->responseSuccess(null, 'Booking already completed and payment already transferred.', 200);
                 }
@@ -209,21 +210,8 @@ class DisputeController extends Controller
                     return $this->responseError(null, 'No transaction found for this booking.', 404);
                 }
                 $provider = $dispute->booking->provider;
-                if (! $provider || ! $provider->stripe_account_id) {
-                    return $this->responseError(null, 'Provider has no connected Stripe account.', 400);
-                }
-
-                $amount = $dispute->booking->transaction->amount - $dispute->booking->transaction->profit;
-                if ($amount <= 0) {
-                    return $this->responseError(null, 'Invalid transfer amount.', 400);
-                }
-
-                    $transfer = Transfer::create([
-                        'amount'      => $amount * 100,
-                        'currency'    => 'ngn',
-                        'destination' => $provider->stripe_account_id,
-                    ]);
-
+                $provider->wallet_balance += $dispute->booking->transaction->amount - $dispute->booking->transaction->profit;
+                $provider->save();
                 $dispute->booking->status = 'Completed';
                 $dispute->booking->save();
                 $dispute->status = 'Resolved';
@@ -248,10 +236,10 @@ class DisputeController extends Controller
     public function disputeMail(DisputeMailRequest $request)
     {
         try {
-            $user = User::findOrFail($request->user_id);
-            $mail_message=$request->message;
+            $user         = User::findOrFail($request->user_id);
+            $mail_message = $request->message;
             Mail::to($user->email)->send(new DisputeMail($request->subject, $mail_message));
-            return $this->responseSuccess(null,'Mail sent successfully');
+            return $this->responseSuccess(null, 'Mail sent successfully');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
         }

@@ -24,9 +24,9 @@ class StoreBoostProfileRequest extends FormRequest
     {
         return [
             'number_of_days' => 'required|numeric|in:3,7,15,30',
-            'payment_method' => 'required|in:stripe,referral_balance',
+            'payment_method' => 'required|in:stripe,referral_balance,flutterwave',
             'payment_amount' => 'required|numeric|min:0',
-            'payment_intent_id'=>'required_if:payment_method,stripe'
+            'payment_intent_id'=>'required_if:payment_method,flutterwave'
         ];
     }
 

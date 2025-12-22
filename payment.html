@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flutterwave Payment</title>
+    <script src="https://checkout.flutterwave.com/v3.js"></script>
+</head>
+<body>
+
+<h2>Make Payment</h2>
+
+<label>Amount:</label><br>
+<input type="number" id="amount" value="1000"><br><br>
+
+<label>Email:</label><br>
+<input type="email" id="email" value="test@email.com"><br><br>
+
+<button onclick="makePayment()">Pay Now</button>
+
+<p id="result"></p>
+
+<script>
+function makePayment() {
+
+    let txRef = "TX_" + Date.now(); // unique transaction id
+
+    FlutterwaveCheckout({
+        public_key: "FLWPUBK_TEST-8ae5ae7873e218ce9a69eadc088ca540-X",
+        tx_ref: txRef,
+        amount: document.getElementById('amount').value,
+        currency: "NGN",
+        payment_options: "card,banktransfer,ussd",
+        customer: {
+            email: document.getElementById('email').value,
+        },
+        callback: function (data) {
+
+            // ✅ Transaction ID & Status
+            console.log(data);
+
+            document.getElementById('result').innerHTML = `
+                <b>Status:</b> ${data.status} <br>
+                <b>Transaction ID:</b> ${data.transaction_id} <br>
+                <b>Tx Ref:</b> ${data.tx_ref}
+            `;
+
+        },
+        onclose: function() {
+            alert("Payment closed");
+        },
+        customizations: {
+            title: "My Multivendor App",
+            description: "Payment for service",
+            logo: "https://your-logo.png"
+        }
+    });
+}
+</script>
+
+</body>
+</html>
