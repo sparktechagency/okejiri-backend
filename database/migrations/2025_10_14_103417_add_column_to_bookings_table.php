@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('status')->default('New');
             $table->enum('payment_type', ['from_balance', 'make_payment'])
                 ->default('from_balance');
+                
         });
     }
 
