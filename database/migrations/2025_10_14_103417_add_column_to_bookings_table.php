@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('schedule_time_slot')->nullable();
             $table->decimal('price', 8, 2)->nullable();
             $table->integer('number_of_people')->nullable();
-            $table->string('order_id');
+            $table->string('order_id')->nullable();
             $table->string('payment_intent_id')->nullable();
             $table->string('status')->default('New');
             $table->enum('payment_type', ['from_balance', 'make_payment'])

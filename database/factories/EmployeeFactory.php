@@ -22,7 +22,7 @@ class EmployeeFactory extends Factory
         $image      = $fileUpload->setPath('placeholders/employee/')->generatePlaceholderImage();
         return [
             'provider_id' => User::where('role', 'PROVIDER')->where('provider_type', 'Company')->inRandomOrder()->first()?->id,
-            'service_id'  => Service::inRandomOrder()->first()?->id,
+            // 'service_id'  => Service::inRandomOrder()->first()?->id,
             'image'       => $image,
             'name'        => $this->faker->name(),
             'phone'       => $this->faker->phoneNumber(),
