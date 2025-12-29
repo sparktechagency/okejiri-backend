@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('referral_code')->nullable();
             $table->decimal('wallet_balance')->default(0);
             $table->decimal('referral_balance')->default(0);
-            $table->string('wallet_address')->unique();
+            $table->string('wallet_address')->unique()->nullable();
             $table->string('id_card_front')->nullable();
             $table->string('id_card_back')->nullable();
             $table->string('selfie')->nullable();
