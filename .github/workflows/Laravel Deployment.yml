@@ -40,7 +40,7 @@ jobs:
             composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
             #npm install
-            npm run build
+            #npm run build
 
             #php artisan storage:link || true
 
