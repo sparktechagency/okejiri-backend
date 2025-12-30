@@ -90,7 +90,7 @@ class BookingController extends Controller
                 ]);
             } elseif ($request->payment_type === 'make_payment') {
                 $transactionId = $request->payment_intent_id;
-
+return env('FLUTTERWAVE_SECRET_KEY');
                 $response = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
                     ->get("https://api.flutterwave.com/v3/transactions/{$transactionId}/verify");
              return   $result = $response->json();
