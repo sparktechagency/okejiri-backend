@@ -93,7 +93,7 @@ class BookingController extends Controller
 
                 $response = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
                     ->get("https://api.flutterwave.com/v3/transactions/{$transactionId}/verify");
-                $result = $response->json();
+             return   $result = $response->json();
 
                 if ($result['status'] === 'success' && $result['data']['status'] === 'successful') {
 
