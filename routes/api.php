@@ -63,7 +63,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::get('delivery-time-extension_details/{request_id}', [NotificationController::class, 'deliveryTimeExtensionDetails']);
 
         // Provider routes
-        Route::middleware('provider')->as('provider')->group(function () {
+        Route::middleware('provider')->as('provider.')->group(function () {
             Route::get('home-data', [HomeController::class, 'homeData']);
             Route::apiResource('portfolios', ProviderPortfolioController::class);
             Route::post('manage-discounts', [ProviderController::class, 'manageDiscounts']);
