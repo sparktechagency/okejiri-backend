@@ -19,10 +19,11 @@ class WalletManagementController extends Controller
 
     public function depositSuccess(DepositStoreRequest $request)
     {
+
         $transactionId = $request->payment_intent_id;
         $response      = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
             ->get("https://api.flutterwave.com/v3/transactions/{$transactionId}/verify");
-     return   $result = $response->json();
+        $result = $response->json();
 
         if ($result['status'] === 'success' && $result['data']['status'] === 'successful') {
             $amountPaid                    = $result['data']['amount'];
@@ -36,7 +37,7 @@ class WalletManagementController extends Controller
             $user->save();
             return $this->responseSuccess($transaction, 'Account Deposit Successfully.');
         } else {
-            return $this->responseError(null, 'Payment verification failed.', 400);
+            return $this->responseError($result, 'Payment verification failed.', 400);
         }
     }
 
