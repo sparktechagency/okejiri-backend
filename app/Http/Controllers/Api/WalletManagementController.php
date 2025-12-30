@@ -20,8 +20,7 @@ class WalletManagementController extends Controller
 
     public function depositSuccess(DepositStoreRequest $request)
     {
-        Log::info('Deposit Success Called', $request->all());
-        $transactionId = $request->payment_intent_id;
+      return  $transactionId = $request->payment_intent_id;
         $response      = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
         ->get("https://api.flutterwave.com/v3/transactions/{$transactionId}/verify");
        return $result = $response->json();
