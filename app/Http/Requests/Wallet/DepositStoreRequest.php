@@ -24,7 +24,7 @@ class DepositStoreRequest extends FormRequest
     {
         return [
             'deposit_amount' => 'required|numeric|min:1',
-            'payment_intent_id' => 'required|string',
+            'payment_intent_id' => 'required',
         ];
     }
 
