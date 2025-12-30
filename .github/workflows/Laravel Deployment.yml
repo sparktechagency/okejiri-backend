@@ -1,4 +1,4 @@
-name: Deploy Laravel Project
+name: Deploy Backend
 
 on:
   push:
