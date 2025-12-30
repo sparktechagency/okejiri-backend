@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class WalletManagementController extends Controller
 {
@@ -20,14 +19,13 @@ class WalletManagementController extends Controller
 
     public function depositSuccess(DepositStoreRequest $request)
     {
-      return  $transactionId = $request->payment_intent_id;
+        $transactionId = $request->payment_intent_id;
         $response      = Http::withToken(env('FLUTTERWAVE_SECRET_KEY'))
-        ->get("https://api.flutterwave.com/v3/transactions/{$transactionId}/verify");
-       return $result = $response->json();
+            ->get("https://api.flutterwave.com/v3/transactions/{$transactionId}/verify");
+        $result = $response->json();
 
         if ($result['status'] === 'success' && $result['data']['status'] === 'successful') {
             $amountPaid                    = $result['data']['amount'];
-            Log::info('Deposit amount', $result['data']['amount']);
             $transaction                   = new Transaction();
             $transaction->sender_id        = Auth::id();
             $transaction->amount           = $amountPaid;
@@ -38,7 +36,7 @@ class WalletManagementController extends Controller
             $user->save();
             return $this->responseSuccess($transaction, 'Account Deposit Successfully.');
         } else {
-            return $this->responseError($result, 'Payment verification failed.', 400);
+            return $this->responseError(null, 'Payment verification failed.', 400);
         }
     }
 
