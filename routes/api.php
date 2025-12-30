@@ -97,7 +97,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         });
 
         // User routes
-        Route::middleware('user')->as('user')->group(function () {
+        Route::middleware('user')->as('user.')->group(function () {
             Route::post('click', [BoostProfileController::class, 'increaseClick']);
             Route::post('report-provider', [ReportController::class, 'reportProvider']);
 
@@ -134,7 +134,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         });
 
         // Admin routes
-        Route::middleware('admin')->prefix('admin/')->as('admin')->group(function () {
+        Route::middleware('admin')->prefix('admin/')->as('admin.')->group(function () {
             // Route::post('block-toggle/{user_id}', [AuthController::class, 'toggleBlockStatus']);
             Route::post('pages', [PageController::class, 'createOrUpdatePage']);
             Route::get('requested-services', [ServiceController::class, 'requestedServices']);
@@ -194,7 +194,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         });
 
         // user.provider routes
-        Route::middleware('user.provider')->as('user.provider')->group(function () {
+        Route::middleware('user.provider')->as('user.provider.')->group(function () {
             Route::post('switch-role', [AuthController::class, 'switchRole']);
             Route::get('my-referrals', [ReferralManagementController::class, 'myReferrals']);
 
@@ -212,7 +212,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             Route::post('add-dispute-appeal', [DisputeAppealController::class, 'addDisputeAppeal']);
         });
 
-        Route::middleware('admin.user.provider')->as('common')->group(function () {
+        Route::middleware('admin.user.provider')->as('common.')->group(function () {
             // Messaging
             Route::post('send-message', [MessageController::class, 'sendMessage']);
             Route::post('edit-message/{id}', [MessageController::class, 'editMessage']);
