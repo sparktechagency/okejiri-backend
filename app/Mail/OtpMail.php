@@ -10,11 +10,11 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 // class OtpMail extends Mailable implements ShouldQueue
-class OtpMail extends Mailable implements ShouldQueue
+class OtpMail extends Mailable 
 {
     use Queueable, SerializesModels;
 
-    
+
     /**
      * Create a new message instance.
      */
