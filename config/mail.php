@@ -37,22 +37,30 @@ return [
 
     'mailers' => [
 
- 'smtp' => [
-    'transport' => 'smtp',
-    'host' => 'server237.web-hosting.com', // সরাসরি হোস্ট বসানো হলো
-    'port' => 465,
-    'encryption' => 'ssl',
-    'username' => 'noreply@okejiri.com', // সরাসরি ইমেইল
-    'password' => 'OkejiriPass2026',     // সরাসরি পাসওয়ার্ড
-    'timeout' => null,
-    'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
-],
+        'smtp'       => [
+            'transport'    => 'smtp',
+            'scheme'       => env('MAIL_SCHEME'),
+            'url'          => env('MAIL_URL'),
+            'host'         => env('MAIL_HOST', '127.0.0.1'),
+            'port'         => env('MAIL_PORT', 2525),
+            'username'     => env('MAIL_USERNAME'),
+            'password'     => env('MAIL_PASSWORD'),
+            'timeout'      => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'context'      => [
+                'ssl' => [
+                    'verify_peer'       => false,
+                    'verify_peer_name'  => false,
+                    'allow_self_signed' => true,
+                ],
+            ],
+        ],
 
-        'ses' => [
+        'ses'        => [
             'transport' => 'ses',
         ],
 
-        'postmark' => [
+        'postmark'   => [
             'transport' => 'postmark',
             // 'message_stream_id' => env('POSTMARK_MESSAGE_STREAM_ID'),
             // 'client' => [
@@ -60,27 +68,27 @@ return [
             // ],
         ],
 
-        'resend' => [
+        'resend'     => [
             'transport' => 'resend',
         ],
 
-        'sendmail' => [
+        'sendmail'   => [
             'transport' => 'sendmail',
-            'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
+            'path'      => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
         ],
 
-        'log' => [
+        'log'        => [
             'transport' => 'log',
-            'channel' => env('MAIL_LOG_CHANNEL'),
+            'channel'   => env('MAIL_LOG_CHANNEL'),
         ],
 
-        'array' => [
+        'array'      => [
             'transport' => 'array',
         ],
 
-        'failover' => [
-            'transport' => 'failover',
-            'mailers' => [
+        'failover'   => [
+            'transport'   => 'failover',
+            'mailers'     => [
                 'smtp',
                 'log',
             ],
@@ -88,8 +96,8 @@ return [
         ],
 
         'roundrobin' => [
-            'transport' => 'roundrobin',
-            'mailers' => [
+            'transport'   => 'roundrobin',
+            'mailers'     => [
                 'ses',
                 'postmark',
             ],
@@ -109,9 +117,9 @@ return [
     |
     */
 
-    'from' => [
+    'from'    => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'name'    => env('MAIL_FROM_NAME', 'Example'),
     ],
 
 ];
