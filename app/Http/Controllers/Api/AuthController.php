@@ -643,6 +643,19 @@ class AuthController extends Controller
             return $this->responseError($e->getMessage(), 'An error occurred while switching roles.');
         }
     }
+
+    public function updateLatLong(Request $request){
+
+        try {
+            $user = Auth::user();
+            $user->latitude = $request->latitude;
+            $user->longitude = $request->longitude;
+            $user->save();
+            return $this->responseSuccess($user, 'Latitude and longitude updated successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage(), 'An error occurred while updating latitude and longitude.');
+        }
+    }
     private function generateTokenResponse($user)
     {
         $token = JWTAuth::fromUser($user);

@@ -117,6 +117,12 @@ class UserController extends Controller
             $user             = User::findOrFail($user_id);
             $user->kyc_status = 'Verified';
             $user->save();
+
+            $query = $user->notifications()
+                ->where('type', CompleteKYCNotification::class);
+            if ($query->count() > 0) {
+                $query->delete();
+            }
             return $this->responseSuccess($user, "KYC request accepted.");
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());

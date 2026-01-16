@@ -25,6 +25,7 @@ class EmployeeController extends Controller
 
     public function index(Request $request)
     {
+
         $per_page  = $request->input('per_page');
         $search    = $request->input('search');
         $employees = Employee::withCount([
@@ -86,7 +87,7 @@ class EmployeeController extends Controller
     {
         try {
             $employee = Employee::findOrFail($employee_id);
-    
+
             $employee->delete();
             return $this->responseSuccess($employee, 'Employee deleted successfully');
         } catch (Exception $e) {

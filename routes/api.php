@@ -53,6 +53,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::post('change-password', [AuthController::class, 'changePassword']);
         Route::post('delete-profile', [AuthController::class, 'deleteProfile']);
         Route::post('complete-kyc', [AuthController::class, 'completeKyc']);
+        Route::post('update-lat-long', [AuthController::class, 'updateLatLong']);
         Route::post('request-add-service', [ServiceController::class, 'requestAddService']);
         Route::post('logout', [AuthController::class, 'logout']);
 
@@ -60,6 +61,9 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::get('notifications', [NotificationController::class, 'notifications']);
         Route::post('mark-notification/{id}', [NotificationController::class, 'singleMark']);
         Route::post('mark-all-notification', [NotificationController::class, 'allMark']);
+        Route::post('delete-all-notifications', [NotificationController::class, 'deleteAllNotifications']);
+        Route::post('delete-notification/{id}', [NotificationController::class, 'deleteNotification']);
+
         Route::get('delivery-time-extension_details/{request_id}', [NotificationController::class, 'deliveryTimeExtensionDetails']);
 
         // Provider routes

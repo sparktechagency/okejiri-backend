@@ -1,12 +1,13 @@
 <?php
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\ExtendDeliveryTime;
-use App\Traits\ApiResponse;
 use Exception;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use App\Models\ExtendDeliveryTime;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\CompleteKYCNotification;
 
 class NotificationController extends Controller
 {
@@ -25,7 +26,7 @@ class NotificationController extends Controller
             'notifications'              => $notifications,
         ];
 
-        return $this->responseSuccess($data,'Notifications retrieved successfully.');
+        return $this->responseSuccess($data, 'Notifications retrieved successfully.');
     }
 
     public function singleMark($notification_id)
@@ -63,12 +64,60 @@ class NotificationController extends Controller
         }
     }
 
-    public function deliveryTimeExtensionDetails($request_id){
+    public function deliveryTimeExtensionDetails($request_id)
+    {
         try {
-            $request_details=ExtendDeliveryTime::findOrFail($request_id);
-            return $this->responseSuccess($request_details,'Request details retrieved successfully');
- } catch (Exception $e) {
+            $request_details = ExtendDeliveryTime::findOrFail($request_id);
+            return $this->responseSuccess($request_details, 'Request details retrieved successfully');
+        } catch (Exception $e) {
             return $this->responseError($e->getMessage());
         }
     }
+
+    public function deleteAllNotifications()
+    {
+        try {
+            $user = Auth::user();
+
+            if (! $user->notifications()->exists()) {
+                return $this->responseSuccess(null, 'No notifications to delete.', 200);
+            }
+            $user->notifications()->delete();
+            return $this->responseSuccess(null, 'All notifications deleted successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage(), 'An error occurred while deleting notifications.', 500);
+        }
+    }
+    public function deleteNotification($notification_id)
+    {
+        try {
+            $notification = Auth::user()
+                ->notifications()
+                ->where('id', $notification_id)
+                ->first();
+
+            if (! $notification) {
+                return $this->responseError(
+                    null,
+                    'Notification not found.',
+                    404
+                );
+            }
+
+            $notification->delete();
+
+            return $this->responseSuccess(
+                null,
+                'Notification deleted successfully.'
+            );
+
+        } catch (Exception $e) {
+            return $this->responseError(
+                $e->getMessage(),
+                'An error occurred while deleting the notification.',
+                500
+            );
+        }
+    }
+
 }
