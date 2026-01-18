@@ -175,12 +175,12 @@ class DisputeController extends Controller
             $dispute = Dispute::with('booking.transaction')->findOrFail($dispute_id);
             if ($request->action == 'refund_user') {
                 if ($dispute->booking->payment_type == 'from_balance') {
-                    $user = $dispute->booking->user;
+                    $user                  = $dispute->booking->user;
                     $user->wallet_balance += $dispute->booking->price;
                     $user->save();
-                    $dispute->booking->status = 'Cancelled';
+                    $dispute->booking->status  = 'Cancelled';
                     $dispute->booking->save();
-                    $dispute->status = 'Resolved';
+                    $dispute->status  = 'Resolved';
                     $dispute->save();
                 } elseif ($dispute->booking->payment_type == 'make_payment') {
                     $transactionId = $dispute->booking->payment_intent_id;
@@ -209,23 +209,27 @@ class DisputeController extends Controller
                 if (! $dispute->booking->transaction) {
                     return $this->responseError(null, 'No transaction found for this booking.', 404);
                 }
-                $provider = $dispute->booking->provider;
+                $provider                  = $dispute->booking->provider;
                 $provider->wallet_balance += $dispute->booking->transaction->amount - $dispute->booking->transaction->profit;
                 $provider->save();
-                $dispute->booking->status = 'Completed';
+                $dispute->booking->status  = 'Completed';
                 $dispute->booking->save();
-                $dispute->status = 'Resolved';
+                $dispute->status  = 'Resolved';
                 $dispute->save();
             } elseif ($request->action == 'block_user') {
                 $user                   = $dispute->booking->user;
                 $user->is_blocked       = 1;
                 $user->block_expires_at = now()->addDays((int) $request->days);
                 $user->save();
+                $dispute->status = 'Resolved';
+                $dispute->save();
             } elseif ($request->action == 'block_provider') {
                 $provider                   = $dispute->booking->provider;
                 $provider->is_blocked       = 1;
                 $provider->block_expires_at = now()->addDays((int) $request->days);
                 $provider->save();
+                $dispute->status = 'Resolved';
+                $dispute->save();
             }
             return $this->responseSuccess(null, 'Action performed successfully');
         } catch (Exception $e) {

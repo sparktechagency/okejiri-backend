@@ -17,7 +17,7 @@ class ServiceNearbyController extends Controller
         $perPage   = $request->input('per_page', 10);
         $latitude  = Auth::user()->latitude;
         $longitude = Auth::user()->longitude;
-        $radius    = $request->input('radius', 5);
+        $radius    = $request->input('radius', 5); # in km
 
         $packages = Package::with([
             'service:id,name',
