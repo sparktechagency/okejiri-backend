@@ -148,6 +148,7 @@ Route::group(['middleware' => 'api'], function ($router) {
             // users
             Route::get('users', [UserController::class, 'index']);
             Route::post('sent-notifications', [UserController::class, 'sentNotifications']);
+            Route::post('sent-single-notification/{user_id}', [UserController::class, 'sentSingleNotification']);
             Route::get('kyc-requests', [UserController::class, 'getKycRequests']);
             Route::get('kyc-requests-details/{user_id}', [UserController::class, 'getKycRequestDetails']);
             Route::post('accept-kyc/{id}', [UserController::class, 'acceptKyc']);

@@ -78,6 +78,16 @@ class UserController extends Controller
             return $this->responseError($e->getMessage());
         }
     }
+    public function sentSingleNotification(Request $request, $user_id)
+    {
+        try {
+            $unverified_users = User::findOrFail($user_id);
+            $unverified_users->notify(new CompleteKYCNotification());
+            return $this->responseSuccess([], 'Notifications sent successfully.');
+        } catch (Exception $e) {
+            return $this->responseError($e->getMessage());
+        }
+    }
 
     public function getKycRequests(Request $request)
     {
