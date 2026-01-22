@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\User;
 use App\Notifications\CompleteKYCNotification;
 use App\Notifications\KYCApprovedCongratulationNotification;
+use App\Notifications\KYCRejectNotification;
 use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
 use Exception;
@@ -159,6 +160,14 @@ class UserController extends Controller
             $user->kyc_status = 'Rejected';
             $user->save();
             Mail::to($user->email)->send(new KYCRejectMail($user->name, $reason));
+            if ($user->role === 'PROVIDER') {
+                $title     = "Your KYC has been rejected.";
+                $sub_title = "Unfortunately, your KYC verification was not approved. Please review the requirements and resubmit your documents.";
+            } elseif ($user->role === 'USER') {
+                $title     = "Your KYC has been rejected.";
+                $sub_title = "Your KYC verification failed. Please check your information and try again.";
+            }
+            $user->notify(new KYCRejectNotification($title, $sub_title));
             return $this->responseSuccess($user, "KYC request rejected.");
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
