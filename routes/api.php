@@ -137,7 +137,6 @@ Route::group(['middleware' => 'api'], function ($router) {
 
         });
 
-        
         // Admin routes
         Route::middleware('admin')->prefix('admin/')->as('admin.')->group(function () {
             // Route::post('block-toggle/{user_id}', [AuthController::class, 'toggleBlockStatus']);
