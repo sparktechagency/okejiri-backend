@@ -134,13 +134,13 @@ class UserController extends Controller
             if ($query->count() > 0) {
                 $query->delete();
             }
-            // if ($user->role === 'PROVIDER') {
-            //     $title     = "Congratulations! Your KYC has been approved.";
-            //     $sub_title = "You can now add your services and start receiving bookings on the Okejiri.";
-            // } elseif ($user->role === 'USER') {
-            //     $title     = "Congratulations! Your KYC has been approved.";
-            //     $sub_title = "You can now book services on the Okejiri.";
-            // }
+            if ($user->role === 'PROVIDER') {
+                $title     = "Congratulations! Your KYC has been approved.";
+                $sub_title = "You can now add your services and start receiving bookings on the Okejiri.";
+            } elseif ($user->role === 'USER') {
+                $title     = "Congratulations! Your KYC has been approved.";
+                $sub_title = "You can now book services on the Okejiri.";
+            }
 
             $user->notify(new KYCApprovedCongratulationNotification($title, $sub_title));
             return $this->responseSuccess($user, "KYC request accepted.");
