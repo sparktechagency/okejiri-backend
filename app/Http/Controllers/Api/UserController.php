@@ -7,6 +7,7 @@ use App\Mail\UserDeleteMail;
 use App\Models\Company;
 use App\Models\User;
 use App\Notifications\CompleteKYCNotification;
+use App\Notifications\KYCApprovedCongratulationNotification;
 use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
 use Exception;
@@ -133,6 +134,15 @@ class UserController extends Controller
             if ($query->count() > 0) {
                 $query->delete();
             }
+            if ($user->role === 'PROVIDER') {
+                $title     = "Congratulations! Your KYC has been approved.";
+                $sub_title = "You can now add your services and start receiving bookings on the Okejiri.";
+            } elseif ($user->role === 'USER') {
+                $title     = "Congratulations! Your KYC has been approved.";
+                $sub_title = "You can now book services on the Okejiri.";
+            }
+
+            $user->notify(new KYCApprovedCongratulationNotification($title, $sub_title));
             return $this->responseSuccess($user, "KYC request accepted.");
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
