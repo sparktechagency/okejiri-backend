@@ -9,17 +9,18 @@ class ReportWarningNotification extends Notification
 {
     use Queueable;
 
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-    public $title, $type, $data;
-    public function __construct($title, $type, $data)
+    public function __construct($title, $body, $data = [])
     {
         $this->title = $title;
-        $this->type  = $type;
+        $this->body  = $body;
         $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -27,7 +28,7 @@ class ReportWarningNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -50,7 +51,16 @@ class ReportWarningNotification extends Notification
     {
         return [
             'title' => $this->title,
-            'type'  => $this->type,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
             'data'  => $this->data,
         ];
     }

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
@@ -11,14 +10,18 @@ class CompleteKYCNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-    public function __construct()
+    public function __construct($title, $body, $data = [])
     {
-        //
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -26,7 +29,7 @@ class CompleteKYCNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -48,8 +51,18 @@ class CompleteKYCNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'title'=>'Complete your KYC to access all the features.',
-            'type'=>'complete_kyc'
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }

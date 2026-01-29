@@ -9,15 +9,17 @@ class KYCApprovedCongratulationNotification extends Notification
 {
     use Queueable;
 
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-
-    public $title, $sub_title;
-    public function __construct($title, $sub_title)
+    public function __construct($title, $body, $data = [])
     {
-        $this->title     = $title;
-        $this->sub_title = $sub_title;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
     /**
      * Get the notification's delivery channels.
@@ -26,7 +28,7 @@ class KYCApprovedCongratulationNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -48,9 +50,18 @@ class KYCApprovedCongratulationNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title'     => $this->title,
-            'sub_title' => $this->sub_title,
-            'type'      => 'kyc_approved',
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }

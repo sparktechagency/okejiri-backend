@@ -31,6 +31,8 @@ use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\FlutterwavePaymentController;
 use App\Http\Controllers\ProviderPortfolioController;
+use App\Models\User;
+use App\Notifications\ExampleNotification;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'api'], function ($router) {
@@ -56,6 +58,7 @@ Route::group(['middleware' => 'api'], function ($router) {
         Route::post('update-lat-long', [AuthController::class, 'updateLatLong']);
         Route::post('request-add-service', [ServiceController::class, 'requestAddService']);
         Route::post('logout', [AuthController::class, 'logout']);
+        Route::post('/fcm-token', [AuthController::class, 'storeToken']);
 
         // Notifications
         Route::get('notifications', [NotificationController::class, 'notifications']);
@@ -137,7 +140,6 @@ Route::group(['middleware' => 'api'], function ($router) {
 
         });
 
-        
         // Admin routes
         Route::middleware('admin')->prefix('admin/')->as('admin.')->group(function () {
             // Route::post('block-toggle/{user_id}', [AuthController::class, 'toggleBlockStatus']);

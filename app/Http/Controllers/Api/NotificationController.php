@@ -1,13 +1,12 @@
 <?php
 namespace App\Http\Controllers\Api;
 
-use Exception;
-use App\Traits\ApiResponse;
-use Illuminate\Http\Request;
-use App\Models\ExtendDeliveryTime;
 use App\Http\Controllers\Controller;
+use App\Models\ExtendDeliveryTime;
+use App\Traits\ApiResponse;
+use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Notifications\CompleteKYCNotification;
 
 class NotificationController extends Controller
 {

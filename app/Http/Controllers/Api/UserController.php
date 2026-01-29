@@ -74,7 +74,24 @@ class UserController extends Controller
         $role = $request->input('role');
         try {
             $unverified_users = User::where('role', $role)->where('kyc_status', 'Unverified')->get();
-            Notification::send($unverified_users, new CompleteKYCNotification());
+
+            $notificationData = [
+                'title' => 'Complete your KYC',
+                'body'  => 'Complete your KYC to access all the features.',
+                'data'  => [
+                    'type' => 'complete_kyc',
+                ],
+            ];
+
+            Notification::send(
+                $unverified_users,
+                new CompleteKYCNotification(
+                    $notificationData['title'],
+                    $notificationData['body'],
+                    $notificationData['data']
+                )
+            );
+
             return $this->responseSuccess([], 'Notifications sent successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -84,7 +101,13 @@ class UserController extends Controller
     {
         try {
             $unverified_users = User::findOrFail($user_id);
-            $unverified_users->notify(new CompleteKYCNotification());
+            $unverified_users->notify(new CompleteKYCNotification(
+                'Complete your KYC',
+                'Complete your KYC to access all the features.',
+                [
+                    'type' => 'complete_kyc',
+                ]
+            ));
             return $this->responseSuccess([], 'Notifications sent successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -143,7 +166,14 @@ class UserController extends Controller
                 $sub_title = "You can now book services on the Okejiri.";
             }
 
-            $user->notify(new KYCApprovedCongratulationNotification($title, $sub_title));
+            $user->notify(new KYCApprovedCongratulationNotification(
+                $title,
+                $sub_title,
+                [
+                    'type' => 'kyc_approved',
+                ]
+            ));
+
             return $this->responseSuccess($user, "KYC request accepted.");
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -167,7 +197,14 @@ class UserController extends Controller
                 $title     = "Your KYC has been rejected.";
                 $sub_title = "Your KYC verification failed. Please check your information and try again.";
             }
-            $user->notify(new KYCRejectNotification($title, $sub_title));
+            $user->notify(new KYCRejectNotification(
+                $title,
+                $sub_title,
+                [
+                    'type' => 'kyc_reject',
+                ]
+            ));
+
             return $this->responseSuccess($user, "KYC request rejected.");
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());

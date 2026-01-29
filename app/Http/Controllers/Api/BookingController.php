@@ -65,7 +65,7 @@ class BookingController extends Controller
 
                 $user->wallet_balance -= $request->price;
                 $user->save();
-                $booking = Booking::create([
+                $booking  = Booking::create([
                     'user_id'            => Auth::id(),
                     'provider_id'        => $request->provider_id,
                     'package_id'         => null,
@@ -147,7 +147,18 @@ class BookingController extends Controller
             $provider = User::findOrFail($request->provider_id);
             $user     = Auth::user()->only(['id', 'name', 'kyc_status']);
             DB::commit();
-            $provider->notify(new NewOrderNotification($user, $booking->price, $booking->id));
+
+            $provider->notify(new NewOrderNotification(
+                'New order.',
+                'Tap to see details',
+                [
+                    'user'     => $user,
+                    'price'    => $booking->price,
+                    'order_id' => $booking->id,
+                    'type'     => 'new_order',
+                ]
+            ));
+
             return $this->responseSuccess($booking, 'Booking completed successfully');
 
         } catch (Exception $e) {
@@ -225,7 +236,17 @@ class BookingController extends Controller
         ]);
 
         $provider = Auth::user()->only(['id', 'name', 'kyc_status']);
-        $user->notify(new ExtendDeliveryTimeNotification($provider, $extendRequest->id));
+
+        $user->notify(new ExtendDeliveryTimeNotification(
+            'Request for delivery time extension.',
+            'Tap to see details',
+            [
+                'provider'   => $provider,
+                'request_id' => $extendRequest->id,
+                'type'       => 'extend_delivery_time',
+            ]
+        ));
+
         return $this->responseSuccess($extendRequest, 'Delivery time extension request submitted successfully.');
     }
 
@@ -245,7 +266,15 @@ class BookingController extends Controller
 
         $user     = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
         $provider = User::findOrFail($booking->provider_id);
-        $provider->notify(new ExtendDeliveryTimeAcceptNotification($user, $extendRequest->id));
+        $provider->notify(new ExtendDeliveryTimeAcceptNotification(
+            'Delivery time extension accepted.',
+            'Tap to see details',
+            [
+                'user'       => $user,
+                'request_id' => $extendRequest->id,
+                'type'       => 'accept_extend_delivery_time',
+            ]
+        ));
 
         return $this->responseSuccess($extendRequest, 'Delivery time extension request accepted successfully.');
     }
@@ -263,8 +292,16 @@ class BookingController extends Controller
         $booking  = Booking::findOrFail($extendRequest->booking_id);
         $user     = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
         $provider = User::findOrFail($booking->provider_id);
-        $provider->notify(new ExtendDeliveryTimeDeclineNotification($user, $extendRequest->id));
 
+        $provider->notify(new ExtendDeliveryTimeDeclineNotification(
+            'Delivery time extension declined.',
+            'Tap to see details',
+            [
+                'user'       => $user,
+                'request_id' => $extendRequest->id,
+                'type'       => 'decline_extend_delivery_time',
+            ]
+        ));
         return $this->responseSuccess($extendRequest, 'Delivery time extension request declined.');
     }
 
@@ -277,7 +314,15 @@ class BookingController extends Controller
 
             $provider = User::findOrFail($booking->provider_id)->only(['id', 'name', 'kyc_status']);
             $user     = User::findOrFail($booking->user_id);
-            $user->notify(new OrderApprovedNotification($provider, $booking->id));
+            $user->notify(new OrderApprovedNotification(
+                'Order approved',
+                'Tap to see details',
+                [
+                    'provider' => $provider,
+                    'order_id' => $booking->id,
+                    'type'     => 'order_approved',
+                ]
+            ));
             return $this->responseSuccess($booking, 'Order approved successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -305,17 +350,26 @@ class BookingController extends Controller
                 }
 
                 if ($booking->transaction) {
-                             $booking->transaction->update([
-                    'receiver_id'      => null,
-                    'transaction_type' => 'refund',
-                    'profit'           => null,
-                ]);
+                    $booking->transaction->update([
+                        'receiver_id'      => null,
+                        'transaction_type' => 'refund',
+                        'profit'           => null,
+                    ]);
                 }
             }
             $booking->status = 'Reject';
             $booking->save();
             $provider = User::findOrFail($booking->provider_id)->only(['id', 'name', 'kyc_status']);
-            $user->notify(new OrderRejectNotification($provider, $booking->id));
+
+            $user->notify(new OrderRejectNotification(
+                'Order rejected',
+                'Tap to see details',
+                [
+                    'provider' => $provider,
+                    'order_id' => $booking->id,
+                    'type'     => 'order_rejected',
+                ]
+            ));
             return $this->responseSuccess($booking, 'Order rejected successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -328,7 +382,16 @@ class BookingController extends Controller
             $booking  = Booking::findOrFail($booking_id);
             $provider = User::findOrFail($booking->provider_id)->only(['id', 'name', 'kyc_status']);
             $user     = User::findOrFail($booking->user_id);
-            $user->notify(new DeliveryRequestSentNotification($provider, $booking->id));
+
+            $user->notify(new DeliveryRequestSentNotification(
+                'Requested for delivery.',
+                'Tap to see details',
+                [
+                    'provider' => $provider,
+                    'order_id' => $booking->id,
+                    'type'     => 'delivery_request_sent',
+                ]
+            ));
             return $this->responseSuccess($booking, 'Delivery request sent successfully');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -342,14 +405,16 @@ class BookingController extends Controller
 
             $user = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
 
-            $notification_data = [
-                'title'     => 'Delivery request decline',
-                'sub_title' => 'Tap to see details',
-                'user'      => $user,
-                'order_id'  => $booking_id,
-                'type'      => 'delivery_request_decline',
-            ];
-            $provider->notify(new DeliveryRequestAcceptDeclineRequest($notification_data));
+            $provider->notify(new DeliveryRequestAcceptDeclineRequest(
+                'Delivery request decline.',
+                'Tap to see details',
+                [
+                    'user'     => $user,
+                    'order_id' => $booking_id,
+                    'type'     => 'delivery_request_decline',
+                ]
+            ));
+
             return $this->responseSuccess($booking, 'Delivery request decline successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -395,16 +460,19 @@ class BookingController extends Controller
             $booking->status = 'Completed';
             $booking->save();
 
-            $provider          = User::findOrFail($booking->provider_id);
-            $user              = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
-            $notification_data = [
-                'title'     => 'Delivery request approved',
-                'sub_title' => 'Tap to see details',
-                'user'      => $user,
-                'order_id'  => $booking_id,
-                'type'      => 'delivery_request_approved',
-            ];
-            $provider->notify(new DeliveryRequestAcceptDeclineRequest($notification_data));
+            $provider = User::findOrFail($booking->provider_id);
+            $user     = User::findOrFail($booking->user_id)->only(['id', 'name', 'kyc_status']);
+
+            $provider->notify(new DeliveryRequestAcceptDeclineRequest(
+                'Delivery request approved.',
+                'Tap to see details',
+                [
+                    'user'     => $user,
+                    'order_id' => $booking_id,
+                    'type'     => 'delivery_request_approved',
+                ]
+            ));
+
             return $this->responseSuccess($booking, 'Delivery request accept successfully.');
         } catch (Exception $e) {
             return $this->responseError($e->getMessage());
@@ -481,7 +549,7 @@ class BookingController extends Controller
             }
 
             if ($booking->payment_type == 'from_balance') {
-                $user = $booking->user;
+                $user                  = $booking->user;
                 $user->wallet_balance += $booking->price;
                 $user->save();
             } elseif ($booking->payment_type == 'make_payment') {
@@ -514,8 +582,26 @@ class BookingController extends Controller
             DB::commit();
 
             if ($request->reason) {
-                $booking->user->notify(new OrderCancelNotification($request->reason, $booking->id));
-                $booking->provider->notify(new OrderCancelNotification($request->reason, $booking->id));
+
+                $booking->user->notify(new OrderCancelNotification(
+                    'Order cancelled',
+                    'Tap to view the reason',
+                    [
+                        'order_id' => $booking->id,
+                        'reason'   => $request->reason,
+                        'type'     => 'order_cancelled',
+                    ]
+                ));
+                $booking->provider->notify(new OrderCancelNotification(
+                    'Order cancelled',
+                    'Tap to view the reason',
+                    [
+                        'order_id' => $booking->id,
+                        'reason'   => $request->reason,
+                        'type'     => 'order_cancelled',
+                    ]
+                ));
+
             }
             return $this->responseSuccess($booking, 'Order cancelled successfully.');
 

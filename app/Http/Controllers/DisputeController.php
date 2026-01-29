@@ -59,7 +59,15 @@ class DisputeController extends Controller
         $dispute->save();
 
         $notify_user = User::where('id', $to_user_id)->first();
-        $notify_user->notify(new NewDisputeNotification($dispute->id));
+        $notify_user->notify(new NewDisputeNotification(
+            'New dispute.',
+            'Tap to view',
+            [
+                'dispute_id' => $dispute->id,
+                'type'       => 'new_dispute',
+            ]
+        ));
+
         return $this->responseSuccess($dispute, 'Dispute created successfully', 201);
     }
 

@@ -1,26 +1,25 @@
 <?php
-
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class DeliveryRequestSentNotification extends Notification
 {
     use Queueable;
-
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-    public $provider, $order_id;
-    public function __construct($provider, $order_id)
+    public function __construct($title, $body, $data = [])
     {
-        $this->provider = $provider;
-        $this->order_id = $order_id;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -28,7 +27,7 @@ class DeliveryRequestSentNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -49,12 +48,19 @@ class DeliveryRequestSentNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-         return [
-            'title'     => 'Requested for delivery',
-            'sub_title' => 'Tap to see details',
-            'provider'  => $this->provider,
-            'order_id'  => $this->order_id,
-            'type'      => 'delivery_request_sent',
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }

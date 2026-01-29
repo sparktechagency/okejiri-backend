@@ -57,7 +57,14 @@ class ReportController extends Controller
             $admins = User::where('role', 'admin')->get();
 
             foreach ($admins as $admin) {
-                $admin->notify(new NewReportNotification($report->id));
+                $admin->notify(new NewReportNotification(
+                    'New report',
+                    "An user reported against a provider's package.",
+                    [
+                        'type'      => 'new_report',
+                        'report_id' => $report->id,
+                    ]
+                ));
             }
             return $this->responseSuccess($report, 'Report has been submitted successfully!', 201);
         } catch (Exception $e) {
@@ -185,8 +192,14 @@ class ReportController extends Controller
                 'report_action'             => $report->report_action,
                 'report_action_description' => $report->report_action_description,
             ];
-
-            $provider->notify(new ReportWarningNotification($title, $type, $report_data));
+            $provider->notify(new ReportWarningNotification(
+                $title,
+                'Tap to view',
+                [
+                    'type' => $type,
+                    'data' => $report_data,
+                ]
+            ));
 
             return $this->responseSuccess($report, "Take report action as {$request->action_name}.");
         } catch (Exception $e) {

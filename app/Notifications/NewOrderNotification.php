@@ -8,18 +8,18 @@ use Illuminate\Notifications\Notification;
 class NewOrderNotification extends Notification
 {
     use Queueable;
-
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-    public $user, $price, $order_id;
-    public function __construct($user, $price, $order_id)
+    public function __construct($title, $body, $data = [])
     {
-        $this->user     = $user;
-        $this->price    = $price;
-        $this->order_id = $order_id;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -27,7 +27,7 @@ class NewOrderNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -49,12 +49,18 @@ class NewOrderNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title'     => 'New order.',
-            'sub_title' => 'Tap to see details',
-            'user'      => $this->user,
-            // 'price'     => $this->price,
-            'order_id'  => $this->order_id,
-            'type'      => 'new_order',
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }

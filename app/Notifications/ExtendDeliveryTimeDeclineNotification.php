@@ -9,16 +9,18 @@ class ExtendDeliveryTimeDeclineNotification extends Notification
 {
     use Queueable;
 
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-    public $user, $request_id;
-    public function __construct($user, $request_id)
+    public function __construct($title, $body, $data = [])
     {
-        $this->user       = $user;
-        $this->request_id = $request_id;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -26,7 +28,7 @@ class ExtendDeliveryTimeDeclineNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -48,11 +50,18 @@ class ExtendDeliveryTimeDeclineNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title'      => 'Delivery time extension declined.',
-            'sub_title'  => 'Tap to see details',
-            'user'       => $this->user,
-            'request_id' => $this->request_id,
-            'type'       => 'decline_extend_delivery_time',
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }

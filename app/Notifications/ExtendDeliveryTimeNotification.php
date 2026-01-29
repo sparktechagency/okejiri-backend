@@ -8,19 +8,18 @@ use Illuminate\Notifications\Notification;
 class ExtendDeliveryTimeNotification extends Notification
 {
     use Queueable;
-
+  protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-    public $provider;
-    public $request_id;
-
-    public function __construct($provider, $request_id)
+    public function __construct($title, $body, $data = [])
     {
-        $this->provider=$provider;
-        $this->request_id=$request_id;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -28,7 +27,7 @@ class ExtendDeliveryTimeNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -50,11 +49,18 @@ class ExtendDeliveryTimeNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title'      => 'Request for delivery time extension.',
-            'sub_title'  => 'Tap to see details',
-            'provider'   => $this->provider,
-            'request_id' => $this->request_id,
-            'type'       => 'extend_delivery_time',
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }

@@ -135,7 +135,13 @@ class AuthController extends Controller
                 }
                 $user = $new_user;
 
-                $user->notify(new CompleteKYCNotification());
+                $user->notify(new CompleteKYCNotification(
+                    'Complete your KYC',
+                    'Complete your KYC to access all the features.',
+                    [
+                        'type' => 'complete_kyc',
+                    ]
+                ));
 
                 $newUserRole = Str::lower($user->role);
                 $admins      = User::where('role', 'admin')->get();
@@ -147,7 +153,7 @@ class AuthController extends Controller
                         ->first();
 
                     if ($existingNotification) {
-                        $data = $existingNotification->data;
+                        $data           = $existingNotification->data;
                         $data['count'] += 1;
 
                         if ($data['count'] > 9) {
@@ -162,7 +168,17 @@ class AuthController extends Controller
                     } else {
                         $count   = 1;
                         $message = "{$count} new {$newUserRole} registered.";
-                        $admin->notify(new NewRegistrationNotification($count, $message, $newUserRole));
+
+                        $subTitle = 'Tap to view new ' . ($newUserRole === 'provider' ? 'providers' : 'users');
+
+                        $admin->notify(new NewRegistrationNotification(
+                            $message,
+                            $subTitle,
+                            [
+                                'count' => $count,
+                                'type'  => $newUserRole,
+                            ]
+                        ));
                     }
                 }
 
@@ -300,7 +316,13 @@ class AuthController extends Controller
             $new_user->user_name = Str::slug($request->name) . $new_user->id;
             $new_user->save();
 
-            $new_user->notify(new CompleteKYCNotification());
+            $new_user->notify(new CompleteKYCNotification(
+                'Complete your KYC',
+                'Complete your KYC to access all the features.',
+                [
+                    'type' => 'complete_kyc',
+                ]
+            ));
 
             $newUserRole = Str::lower($new_user->role);
             $admins      = User::where('role', 'admin')->get();
@@ -312,7 +334,7 @@ class AuthController extends Controller
                     ->first();
 
                 if ($existingNotification) {
-                    $data = $existingNotification->data;
+                    $data           = $existingNotification->data;
                     $data['count'] += 1;
 
                     if ($data['count'] > 9) {
@@ -325,9 +347,18 @@ class AuthController extends Controller
                         'data' => $data,
                     ]);
                 } else {
-                    $count   = 1;
-                    $message = "{$count} new {$newUserRole} registered.";
-                    $admin->notify(new NewRegistrationNotification($count, $message, $newUserRole));
+                    $count    = 1;
+                    $message  = "{$count} new {$newUserRole} registered.";
+                    $subTitle = 'Tap to view new ' . ($newUserRole === 'provider' ? 'providers' : 'users');
+
+                    $admin->notify(new NewRegistrationNotification(
+                        $message,
+                        $subTitle,
+                        [
+                            'count' => $count,
+                            'type'  => $newUserRole,
+                        ]
+                    ));
                 }
             }
 
@@ -403,10 +434,10 @@ class AuthController extends Controller
         if ($user->email_verified_at != null) {
             $referred_info = ReferUser::where('referred', $user->id)->where('status', 'pending')->first();
             if ($referred_info) {
-                $referrer                   = User::find($referred_info->referrer);
-                $referrer->referral_balance = $referrer->referral_balance += $referred_info->referral_rewards;
+                $referrer                    = User::find($referred_info->referrer);
+                $referrer->referral_balance  = $referrer->referral_balance += $referred_info->referral_rewards;
                 $referrer->save();
-                $referred_info->status = 'approved';
+                $referred_info->status  = 'approved';
                 $referred_info->save();
             }
         }
@@ -487,6 +518,33 @@ class AuthController extends Controller
         $user->user_name = $request->user_name ?? $user->user_name;
         $user->save();
         return $this->responseSuccess($user, 'User profile updated successfully.');
+    }
+
+    public function storeToken(Request $request)
+    {
+        $request->validate([
+            'fcm_token'   => 'required|string',
+            'device_id'   => 'required|string',
+            'device_type' => 'required|in:android,ios,web,windows,macos,linux',
+            'device_name' => 'nullable|string',
+        ]);
+
+        $data = $request->user()->devices()->updateOrCreate(
+            [
+                'device_id' => $request->device_id,
+            ],
+            [
+                'fcm_token'   => $request->fcm_token,
+                'device_type' => $request->device_type,
+                'device_name' => $request->device_name ?? 'Unknown Device',
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Token synchronized successfully.',
+            'data'    => $data,
+        ], 200);
     }
 
     public function editProfilePicture(EditProfilePictureRequest $request)
@@ -644,11 +702,12 @@ class AuthController extends Controller
         }
     }
 
-    public function updateLatLong(Request $request){
+    public function updateLatLong(Request $request)
+    {
 
         try {
-            $user = Auth::user();
-            $user->latitude = $request->latitude;
+            $user            = Auth::user();
+            $user->latitude  = $request->latitude;
             $user->longitude = $request->longitude;
             $user->save();
             return $this->responseSuccess($user, 'Latitude and longitude updated successfully.');

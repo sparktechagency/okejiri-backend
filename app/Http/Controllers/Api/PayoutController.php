@@ -28,7 +28,7 @@ class PayoutController extends Controller
     public function withdrawRequest(StoreWithdrawRequest $request)
     {
         try {
-             $provider=  Auth::user();
+            $provider = Auth::user();
             if ($provider->wallet_balance < $request->amount) {
                 return $this->responseError(null, 'Insufficient wallet balance.', 422);
             }
@@ -38,7 +38,15 @@ class PayoutController extends Controller
                 'currency'    => strtolower($request->currency),
                 'status'      => 'Pending',
             ]);
-            Auth::user()->notify(new WithdrawRequestPendingNotification($withdrawRequest->id));
+
+            Auth::user()->notify(new WithdrawRequestPendingNotification(
+                'Withdrawal request in Pending',
+                'After approving from the admin side you will get your money.',
+                [
+                    'payout_id' => $withdrawRequest->id,
+                    'type'      => 'payout_request',
+                ]
+            ));
             return $this->responseSuccess($withdrawRequest, 'Withdraw request sending successfully.', 201);
         } catch (Exception $e) {
             return $this->responseError(null, $e->getMessage());

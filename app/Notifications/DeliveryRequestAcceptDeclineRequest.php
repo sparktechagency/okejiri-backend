@@ -9,16 +9,18 @@ class DeliveryRequestAcceptDeclineRequest extends Notification
 {
     use Queueable;
 
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-
-    public $notification_data;
-    public function __construct($notification_data)
+    public function __construct($title, $body, $data = [])
     {
-        $this->notification_data = $notification_data;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -26,7 +28,7 @@ class DeliveryRequestAcceptDeclineRequest extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -47,6 +49,19 @@ class DeliveryRequestAcceptDeclineRequest extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        return $this->notification_data;
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
     }
 }

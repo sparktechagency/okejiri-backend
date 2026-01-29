@@ -9,16 +9,18 @@ class NewReportNotification extends Notification
 {
     use Queueable;
 
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-
-    public $report_id;
-    public function __construct($report_id)
+    public function __construct($title, $body, $data = [])
     {
-        $this->report_id=$report_id;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -26,7 +28,7 @@ class NewReportNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -48,10 +50,18 @@ class NewReportNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title'     => 'New report',
-            'sub_title' => 'An user reported against a provider\'s package.',
-            'type'      => 'new_report',
-            'report_id' =>$this->report_id,
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }

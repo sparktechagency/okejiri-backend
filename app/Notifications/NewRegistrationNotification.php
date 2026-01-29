@@ -9,20 +9,18 @@ class NewRegistrationNotification extends Notification
 {
     use Queueable;
 
+    protected $title;
+    protected $body;
+    protected $data;
     /**
      * Create a new notification instance.
      */
-    public $count;
-    public $message;
-    public $newUserRole;
-
-    public function __construct($count, $message, $newUserRole)
+    public function __construct($title, $body, $data = [])
     {
-        $this->count       = $count;
-        $this->message     = $message;
-        $this->newUserRole = $newUserRole;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -30,7 +28,7 @@ class NewRegistrationNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
     }
 
     /**
@@ -51,13 +49,19 @@ class NewRegistrationNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $subTitle = 'Tap to view new ' . ($this->newUserRole === 'provider' ? 'providers' : 'users');
-
         return [
-            'count'     => $this->count,
-            'title'     => $this->message,
-            'sub_title' => $subTitle,
-            'type'      => $this->newUserRole,
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }

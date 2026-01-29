@@ -2,18 +2,25 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class WithdrawRequestPendingNotification extends Notification
 {
     use Queueable;
 
-    public $payout_id;
-    public function __construct($payout_id)
+    protected $title;
+    protected $body;
+    protected $data;
+    /**
+     * Create a new notification instance.
+     */
+    public function __construct($title, $body, $data = [])
     {
-        $this->payout_id = $payout_id;
+        $this->title = $title;
+        $this->body  = $body;
+        $this->data  = $data;
     }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -21,7 +28,18 @@ class WithdrawRequestPendingNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'fcm'];
+    }
+
+    /**
+     * Get the mail representation of the notification.
+     */
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->line('The introduction to the notification.')
+            ->action('Notification Action', url('/'))
+            ->line('Thank you for using our application!');
     }
 
     /**
@@ -32,10 +50,18 @@ class WithdrawRequestPendingNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title'     => 'Withdrawal request in Pending',
-            'sub_title' => 'After approving from the admin side you will get your money.',
-            'payout_id' => $this->payout_id,
-            'type'      => 'payout_request',
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
         ];
     }
 }
