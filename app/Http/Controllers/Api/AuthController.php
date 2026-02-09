@@ -525,7 +525,7 @@ class AuthController extends Controller
         $request->validate([
             'fcm_token'   => 'required|string',
             'device_id'   => 'required|string',
-            'device_type' => 'required|in:android,ios,web,windows,macos,linux',
+            'device_type' => 'required|string',
             'device_name' => 'nullable|string',
         ]);
 
