@@ -81,9 +81,9 @@ class AuthController extends Controller
                     $this->fileuploadService->deleteFile($user_exists->avatar);
                 }
 
-                $user_exists->avatar = $request->hasFile('photo')
-                    ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
-                    : $this->fileuploadService->generateUserAvatar($request->name);
+                if ($request->hasFile('photo')) {
+                    $user_exists->avatar = $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true);
+                }
                 $user_exists->save();
                 if ($request->referral_code) {
                     $referrer         = User::where('role', $request->role)->where('referral_code', $request->referral_code)->first();
@@ -113,9 +113,9 @@ class AuthController extends Controller
                 $new_user->wallet_address = $walletAddress;
                 $new_user->referral_code  = rand(100000, 999999);
 
-                $new_user->avatar = $request->hasFile('photo')
-                    ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
-                    : $this->fileuploadService->generateUserAvatar($request->name);
+                if ($request->hasFile('photo')) {
+                    $new_user->avatar = $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true);
+                }
                 $new_user->save();
 
                 $new_user->user_name = Str::slug($request->name) . $new_user->id;
@@ -307,9 +307,9 @@ class AuthController extends Controller
             $new_user->is_blocked                  = false;
             $new_user->referral_code               = rand(100000, 999999);
 
-            $new_user->avatar = $request->hasFile('photo')
-                ? $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true)
-                : $this->fileuploadService->generateUserAvatar($request->name);
+            if ($request->hasFile('photo')) {
+                $new_user->avatar = $this->fileuploadService->saveOptimizedImage($request->file('photo'), 40, 512, null, true);
+            }
 
             $new_user->save();
 
