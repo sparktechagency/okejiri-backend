@@ -49,6 +49,7 @@ class AuthController extends Controller
 
     public function register(RegistrationRequest $request)
     {
+        // return 'a';
         DB::beginTransaction();
         try {
             $user_exists   = User::where('email', $request->email)->first();
