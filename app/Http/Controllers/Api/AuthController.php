@@ -20,7 +20,7 @@ use App\Models\ProviderService;
 use App\Models\ReferUser;
 use App\Models\Setting;
 use App\Models\User;
-use App\Notifications\CompleteKYCNotification;
+use App\Notifications\KYCNotification;
 use App\Notifications\NewRegistrationNotification;
 use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
@@ -136,7 +136,7 @@ class AuthController extends Controller
                 }
                 $user = $new_user;
 
-                $user->notify(new CompleteKYCNotification(
+                $user->notify(new KYCNotification(
                     'Complete your KYC',
                     'Complete your KYC to access all the features.',
                     [
@@ -317,7 +317,7 @@ class AuthController extends Controller
             $new_user->user_name = Str::slug($request->name) . $new_user->id;
             $new_user->save();
 
-            $new_user->notify(new CompleteKYCNotification(
+            $new_user->notify(new KYCNotification(
                 'Complete your KYC',
                 'Complete your KYC to access all the features.',
                 [

@@ -6,13 +6,14 @@ use App\Mail\KYCRejectMail;
 use App\Mail\UserDeleteMail;
 use App\Models\Company;
 use App\Models\User;
-use App\Notifications\CompleteKYCNotification;
 use App\Notifications\KYCApprovedCongratulationNotification;
+use App\Notifications\KYCNotification;
 use App\Notifications\KYCRejectNotification;
 use App\Services\FileUploadService;
 use App\Traits\ApiResponse;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -85,7 +86,7 @@ class UserController extends Controller
 
             Notification::send(
                 $unverified_users,
-                new CompleteKYCNotification(
+                new KYCNotification(
                     $notificationData['title'],
                     $notificationData['body'],
                     $notificationData['data']
@@ -100,8 +101,9 @@ class UserController extends Controller
     public function sentSingleNotification(Request $request, $user_id)
     {
         try {
-            $unverified_users = User::findOrFail($user_id);
-            $unverified_users->notify(new CompleteKYCNotification(
+
+            $unverified_users = User::with('devices')->findOrFail($user_id);
+            $unverified_users->notify(new KYCNotification(
                 'Complete your KYC',
                 'Complete your KYC to access all the features.',
                 [
@@ -154,7 +156,7 @@ class UserController extends Controller
             $user->save();
 
             $query = $user->notifications()
-                ->where('type', CompleteKYCNotification::class);
+                ->where('type', KYCNotification::class);
             if ($query->count() > 0) {
                 $query->delete();
             }

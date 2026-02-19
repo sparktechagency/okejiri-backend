@@ -1,6 +1,7 @@
 <?php
 namespace App\Providers;
 
+use App\Notifications\Channels\ExpoChannel;
 use App\Notifications\Channels\FcmChannel;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Notification::extend('fcm', function ($app) {
             return new FcmChannel();
+        });
+        Notification::extend('expo', function ($app) {
+            return new ExpoChannel();
         });
     }
 }

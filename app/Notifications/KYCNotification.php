@@ -5,13 +5,13 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class WithdrawRequestPendingNotification extends Notification
+class KYCNotification extends Notification
 {
     use Queueable;
-
     protected $title;
     protected $body;
     protected $data;
+
     /**
      * Create a new notification instance.
      */
@@ -21,6 +21,7 @@ class WithdrawRequestPendingNotification extends Notification
         $this->body  = $body;
         $this->data  = $data;
     }
+
     /**
      * Get the notification's delivery channels.
      *
@@ -57,6 +58,14 @@ class WithdrawRequestPendingNotification extends Notification
     }
 
     public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'body'  => $this->body,
+            'data'  => $this->data,
+        ];
+    }
+    public function toExpo(object $notifiable): array
     {
         return [
             'title' => $this->title,
